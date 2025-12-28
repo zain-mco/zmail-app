@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEAM
+}
+
+enum Permission {
+  VIEW
+  EDIT
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  password_hash String
+  role          Role           @default(TEAM)
+  campaigns     Campaign[]
+  sharedAccess  SharedAccess[] @relation("SharedWith")
+  createdAt     DateTime       @default(now())
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  title        String
+  content_json Json
+  html_output  String?        @db.Text
+  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  sharedAccess SharedAccess[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([ownerId])
+}
+
+model SharedAccess {
+  id               String     @id @default(cuid())
+  campaign         Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId       String
+  sharedWith       User       @relation("SharedWith", fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+  sharedWithUserId String
+  permission       Permission @default(VIEW)
+  createdAt        DateTime   @default(now())
+
+  @@unique([campaignId, sharedWithUserId])
+  @@index([sharedWithUserId])
+}

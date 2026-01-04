@@ -47,12 +47,18 @@ export async function uploadToBunny(
         ? `${folder.replace(/^\/|\/$/g, "")}/${uniqueFilename}`
         : uniqueFilename;
 
-    // Bunny.net Storage API endpoint
-    const storageUrl = `https://storage.bunnycdn.com/${storageZone}/${storagePath}`;
+    // Bunny.net Storage API endpoint (use region-specific hostname)
+    const storageHostname = process.env.BUNNY_STORAGE_HOSTNAME || "storage.bunnycdn.com";
+    const storageUrl = `https://${storageHostname}/${storageZone}/${storagePath}`;
+
+    console.log("Upload URL:", storageUrl);
+    console.log("API Key (first 10 chars):", apiKey.substring(0, 10) + "...");
 
     try {
         // Convert to Blob for fetch compatibility
         const blob = new Blob([file as BlobPart]);
+
+        console.log("Making request to Bunny.net...");
 
         const response = await fetch(storageUrl, {
             method: "PUT",
@@ -63,8 +69,11 @@ export async function uploadToBunny(
             body: blob,
         });
 
+        console.log("Response status:", response.status);
+
         if (!response.ok) {
             const error = await response.text();
+            console.log("Error response:", error);
             return {
                 success: false,
                 error: `Bunny upload failed: ${response.status} - ${error}`,
@@ -101,7 +110,8 @@ export async function deleteFromBunny(filepath: string): Promise<BunnyUploadResu
         };
     }
 
-    const storageUrl = `https://storage.bunnycdn.com/${storageZone}/${filepath}`;
+    const storageHostname = process.env.BUNNY_STORAGE_HOSTNAME || "storage.bunnycdn.com";
+    const storageUrl = `https://${storageHostname}/${storageZone}/${filepath}`;
 
     try {
         const response = await fetch(storageUrl, {

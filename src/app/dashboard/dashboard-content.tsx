@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast, useConfirm } from "@/components/AlertProvider";
+import { defaultTemplates, cloneTemplateBlocks, type EmailTemplate } from "@/lib/default-templates";
 
 interface Campaign {
     id: string;
@@ -42,12 +44,17 @@ interface DashboardContentProps {
 
 export function DashboardContent({ campaigns, teamUsers, currentUserId }: DashboardContentProps) {
     const router = useRouter();
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [newTitle, setNewTitle] = useState("");
+    const [renameTitle, setRenameTitle] = useState("");
     const [selectedUserId, setSelectedUserId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [templateLoading, setTemplateLoading] = useState<string | null>(null);
 
     const myCampaigns = campaigns.filter((c) => c.isOwner);
     const sharedCampaigns = campaigns.filter((c) => !c.isOwner);
@@ -66,8 +73,25 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
             if (res.ok) {
                 setIsCreateOpen(false);
                 setNewTitle("");
+                showToast({
+                    type: "success",
+                    title: "Campaign created",
+                    message: `"${newTitle}" has been created successfully.`,
+                });
                 router.refresh();
+            } else {
+                showToast({
+                    type: "error",
+                    title: "Failed to create campaign",
+                    message: "Please try again.",
+                });
             }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
         } finally {
             setIsLoading(false);
         }
@@ -75,15 +99,19 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
 
     async function handleShareCampaign() {
         if (!selectedCampaign || !selectedUserId) return;
+
+        const targetUser = teamUsers.find(u => u.id === selectedUserId);
+
         setIsLoading(true);
 
         try {
-            const res = await fetch(`/api/campaigns/${selectedCampaign.id}/share`, {
+            // Use clone endpoint - creates an independent copy for the recipient
+            const res = await fetch(`/api/campaigns/${selectedCampaign.id}/clone`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userId: selectedUserId,
-                    permission: "EDIT",
+                    newTitle: `${selectedCampaign.title}`,
                 }),
             });
 
@@ -91,10 +119,149 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                 setIsShareOpen(false);
                 setSelectedCampaign(null);
                 setSelectedUserId("");
+                showToast({
+                    type: "success",
+                    title: "Campaign shared",
+                    message: `A copy has been created for ${targetUser?.username || "the user"}.`,
+                });
                 router.refresh();
+            } else {
+                const error = await res.json();
+                showToast({
+                    type: "error",
+                    title: "Failed to share",
+                    message: error.error || "Please try again.",
+                });
             }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
         } finally {
             setIsLoading(false);
+        }
+    }
+
+    async function handleDeleteCampaign(campaign: Campaign) {
+        const confirmed = await confirm({
+            title: "Delete Campaign",
+            message: `Are you sure you want to delete "${campaign.title}"? This action cannot be undone.`,
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            confirmVariant: "destructive",
+        });
+
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`/api/campaigns/${campaign.id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                showToast({
+                    type: "success",
+                    title: "Campaign deleted",
+                    message: `"${campaign.title}" has been deleted.`,
+                });
+                router.refresh();
+            } else {
+                showToast({
+                    type: "error",
+                    title: "Failed to delete",
+                    message: "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        }
+    }
+
+    // Rename campaign handler
+    async function handleRenameCampaign() {
+        if (!selectedCampaign || !renameTitle.trim()) return;
+        setIsLoading(true);
+
+        try {
+            const res = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: renameTitle }),
+            });
+
+            if (res.ok) {
+                setIsRenameOpen(false);
+                setSelectedCampaign(null);
+                setRenameTitle("");
+                showToast({
+                    type: "success",
+                    title: "Campaign renamed",
+                    message: `Campaign has been renamed to "${renameTitle}".`,
+                });
+                router.refresh();
+            } else {
+                showToast({
+                    type: "error",
+                    title: "Failed to rename",
+                    message: "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    // Use template handler - creates a new campaign from template
+    async function handleUseTemplate(template: EmailTemplate) {
+        setTemplateLoading(template.id);
+
+        try {
+            const clonedBlocks = cloneTemplateBlocks(template.blocks);
+
+            const res = await fetch("/api/campaigns", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: template.name,
+                    content_json: { blocks: clonedBlocks },
+                }),
+            });
+
+            if (res.ok) {
+                const campaign = await res.json();
+                showToast({
+                    type: "success",
+                    title: "Template applied",
+                    message: `Created new campaign from "${template.name}" template.`,
+                });
+                router.push(`/editor/${campaign.id}`);
+            } else {
+                showToast({
+                    type: "error",
+                    title: "Failed to create campaign",
+                    message: "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        } finally {
+            setTemplateLoading(null);
         }
     }
 
@@ -163,6 +330,9 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                     <TabsTrigger value="my-campaigns">
                         My Campaigns ({myCampaigns.length})
                     </TabsTrigger>
+                    <TabsTrigger value="templates">
+                        📋 Templates
+                    </TabsTrigger>
                     <TabsTrigger value="shared">
                         Shared with Me ({sharedCampaigns.length})
                     </TabsTrigger>
@@ -218,6 +388,25 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                                                 >
                                                     Edit
                                                 </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSelectedCampaign(campaign);
+                                                        setRenameTitle(campaign.title);
+                                                        setIsRenameOpen(true);
+                                                    }}
+                                                >
+                                                    Rename
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDeleteCampaign(campaign)}
+                                                >
+                                                    Delete
+                                                </Button>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -225,6 +414,57 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                             ))}
                         </div>
                     )}
+                </TabsContent>
+
+                {/* Templates Tab */}
+                <TabsContent value="templates" className="space-y-4">
+                    <div className="mb-4">
+                        <p className="text-gray-600">Choose a template to start your campaign. Your template library remains unchanged.</p>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {defaultTemplates.map((template) => (
+                            <Card key={template.id} className="hover:shadow-lg transition-shadow border-2 hover:border-blue-200">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-4xl bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl p-3">
+                                            {template.thumbnail}
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-semibold">{template.name}</CardTitle>
+                                            <CardDescription className="text-xs mt-0.5">
+                                                {template.blocks.length} blocks
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-gray-600 mb-4">{template.description}</p>
+                                    <Button
+                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                                        onClick={() => handleUseTemplate(template)}
+                                        disabled={templateLoading === template.id}
+                                    >
+                                        {templateLoading === template.id ? (
+                                            <>
+                                                <svg className="animate-spin w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Use Template
+                                            </>
+                                        )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="shared" className="space-y-4">
@@ -268,15 +508,16 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                         </div>
                     )}
                 </TabsContent>
-            </Tabs>
+            </Tabs >
 
             {/* Share Dialog */}
-            <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+            < Dialog open={isShareOpen} onOpenChange={setIsShareOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Share Campaign</DialogTitle>
                         <DialogDescription>
-                            Share &quot;{selectedCampaign?.title}&quot; with a team member
+                            Share &quot;{selectedCampaign?.title}&quot; with a team member.
+                            A copy will be created for them - your original stays unchanged.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 mt-4">
@@ -310,7 +551,43 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                         </div>
                     </div>
                 </DialogContent>
+            </Dialog >
+
+            {/* Rename Dialog */}
+            <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Rename Campaign</DialogTitle>
+                        <DialogDescription>
+                            Enter a new name for your campaign.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="renameTitle">Campaign Name</Label>
+                            <Input
+                                id="renameTitle"
+                                value={renameTitle}
+                                onChange={(e) => setRenameTitle(e.target.value)}
+                                placeholder="e.g., Q1 Newsletter"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setIsRenameOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleRenameCampaign}
+                                disabled={isLoading || !renameTitle.trim()}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                {isLoading ? "Saving..." : "Save"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

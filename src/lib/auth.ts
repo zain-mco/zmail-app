@@ -29,9 +29,26 @@ declare module "@auth/core/jwt" {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Note: PrismaAdapter is not needed for Credentials-only authentication
-  // The adapter is primarily for OAuth providers that need to store accounts
-  session: { strategy: "jwt" },
+  // Session configuration - OWASP compliant
+  session: {
+    strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 hours absolute session lifetime
+    updateAge: 30 * 60, // Refresh token every 30 minutes
+  },
+  // Secure cookie configuration
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true, // Prevent XSS access
+        sameSite: "lax", // CSRF protection
+        path: "/",
+        secure: process.env.NODE_ENV === "production", // HTTPS only in prod
+      },
+    },
+  },
   pages: {
     signIn: "/login",
   },
@@ -89,26 +106,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return session;
     },
-    async authorized({ auth, request }) {
-      const isLoggedIn = !!auth?.user;
-      const { pathname } = request.nextUrl;
-
-      // Protect admin routes
-      if (pathname.startsWith("/admin")) {
-        return isLoggedIn && auth.user?.role === "ADMIN";
-      }
-
-      // Protect dashboard routes
-      if (pathname.startsWith("/dashboard")) {
-        return isLoggedIn;
-      }
-
-      // Protect API routes (except auth)
-      if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-        return isLoggedIn;
-      }
-
-      return true;
-    },
+    // Note: Route protection is handled by middleware.ts
+    // Do not use authorized callback here as it conflicts with middleware
   },
 });
+

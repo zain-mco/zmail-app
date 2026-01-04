@@ -26,6 +26,7 @@ model User {
   role          Role           @default(TEAM)
   campaigns     Campaign[]
   sharedAccess  SharedAccess[] @relation("SharedWith")
+  images        Image[]
   createdAt     DateTime       @default(now())
 }
 
@@ -54,4 +55,16 @@ model SharedAccess {
 
   @@unique([campaignId, sharedWithUserId])
   @@index([sharedWithUserId])
+}
+
+model Image {
+  id          String   @id @default(cuid())
+  url         String
+  filename    String
+  uploadedBy  String
+  user        User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([uploadedBy])
+  @@index([createdAt])
 }

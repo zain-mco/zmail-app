@@ -7,11 +7,17 @@ import { AdminContent } from "./admin-content";
 export default async function AdminPage() {
     const session = await auth();
 
+    console.log("[Admin Page] Session data:", JSON.stringify(session, null, 2));
+    console.log("[Admin Page] User role:", session?.user?.role);
+    console.log("[Admin Page] Role check result:", session?.user?.role !== "ADMIN");
+
     if (!session?.user) {
+        console.log("[Admin Page] No session user, redirecting to login");
         redirect("/login");
     }
 
     if (session.user.role !== "ADMIN") {
+        console.log("[Admin Page] Not admin role, redirecting to dashboard. Role:", session.user.role);
         redirect("/dashboard");
     }
 

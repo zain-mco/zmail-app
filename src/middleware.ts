@@ -9,6 +9,23 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
+    // Get secret - try AUTH_SECRET first, then NEXTAUTH_SECRET as fallback
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+    // If no secret is configured, skip token validation and allow request
+    // This prevents crashes during development when env vars might not be loaded
+    if (!secret) {
+        console.warn("Missing AUTH_SECRET or NEXTAUTH_SECRET - authentication will not work properly");
+        // For protected routes, redirect to login if no secret is configured
+        if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard") || pathname.startsWith("/editor")) {
+            return NextResponse.redirect(new URL("/login?reason=required", request.url));
+        }
+        if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
+            return NextResponse.json({ error: "Unauthorized - server misconfigured" }, { status: 401 });
+        }
+        return NextResponse.next();
+    }
+
     // Get the token from the request (works in Edge)
     // IMPORTANT: Explicitly specify cookie name to match auth.ts configuration
     const cookieName = process.env.NODE_ENV === "production"
@@ -17,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
     const token = await getToken({
         req: request,
-        secret: process.env.AUTH_SECRET,
+        secret,
         cookieName, // Must match the cookie name in auth.ts
     });
 

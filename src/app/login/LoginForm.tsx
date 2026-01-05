@@ -169,24 +169,11 @@ export function LoginForm({ sessionExpired }: LoginFormProps) {
                             )}
                         </Button>
                     </form>
-
-                    {/* Default Credentials */}
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <p className="text-xs text-blue-800 font-medium mb-2">Default credentials:</p>
-                        <div className="text-xs text-blue-700 space-y-1">
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono bg-white px-2 py-1 rounded">admin</span>
-                                <span>•</span>
-                                <span className="font-mono bg-white px-2 py-1 rounded">admin123</span>
-                            </div>
-                            <p className="text-blue-600 mt-2">⚠️ Change password after first login</p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Footer */}
                 <p className="text-center text-sm text-gray-500 mt-6">
-                    ZMAIL © 2024 • Email Campaign Builder
+                    ZMAIL © 2026 • Email Campaign Builder
                 </p>
             </div>
         </div>

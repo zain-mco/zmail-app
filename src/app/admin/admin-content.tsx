@@ -35,12 +35,16 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isResetOpen, setIsResetOpen] = useState(false);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     async function handleAddUser() {
         if (!username.trim() || !password.trim()) return;
@@ -113,6 +117,55 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
             if (res.ok) {
                 router.refresh();
             }
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function handleChangePassword() {
+        if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+            setError("All fields are required");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setError("New passwords do not match");
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            setError("Password must be at least 6 characters");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const res = await fetch("/api/account/change-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || "Failed to change password");
+                return;
+            }
+
+            setSuccessMessage("Password changed successfully!");
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+
+            // Close dialog after a short delay
+            setTimeout(() => {
+                setIsChangePasswordOpen(false);
+                setSuccessMessage(null);
+            }, 1500);
         } finally {
             setIsLoading(false);
         }
@@ -221,6 +274,108 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
                 </Card>
             </div>
 
+            {/* Change My Password Card */}
+            <Card className="border-blue-100 bg-blue-50/50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Account Security
+                    </CardTitle>
+                    <CardDescription>
+                        Manage your account password
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Dialog open={isChangePasswordOpen} onOpenChange={(open) => {
+                        setIsChangePasswordOpen(open);
+                        if (!open) {
+                            setError(null);
+                            setSuccessMessage(null);
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                        }
+                    }}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-blue-200 hover:bg-blue-100">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                Change My Password
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Change Your Password</DialogTitle>
+                                <DialogDescription>
+                                    Enter your current password and choose a new one
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 mt-4">
+                                {error && (
+                                    <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                                        {error}
+                                    </div>
+                                )}
+                                {successMessage && (
+                                    <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
+                                        {successMessage}
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="currentPassword">Current Password</Label>
+                                    <Input
+                                        id="currentPassword"
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        placeholder="Enter your current password"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="newPasswordChange">New Password</Label>
+                                    <Input
+                                        id="newPasswordChange"
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Enter new password (min 6 characters)"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                                    <Input
+                                        id="confirmPassword"
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Confirm new password"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => {
+                                        setIsChangePasswordOpen(false);
+                                        setError(null);
+                                        setSuccessMessage(null);
+                                    }}>
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleChangePassword}
+                                        disabled={isLoading || !currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        {isLoading ? "Changing..." : "Change Password"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </CardContent>
+            </Card>
+
             {/* Users Table */}
             <Card>
                 <CardHeader>
@@ -247,8 +402,8 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
                                     <TableCell>
                                         <span
                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === "ADMIN"
-                                                    ? "bg-purple-100 text-purple-800"
-                                                    : "bg-blue-100 text-blue-800"
+                                                ? "bg-purple-100 text-purple-800"
+                                                : "bg-blue-100 text-blue-800"
                                                 }`}
                                         >
                                             {user.role}

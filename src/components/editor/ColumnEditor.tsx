@@ -26,7 +26,7 @@ export function ColumnEditor({
     const data = block.data as ColumnsData;
     const columnCount = data.columnCount || 2;
     const gap = data.gap || EMAIL_STYLES.columns.gap;
-    const padding = data.padding || EMAIL_STYLES.padding.columns;
+    const padding = data.padding ?? 20; // Default to 20px
 
     const widths = columnCount === 1 ? ["100%"] : (columnCount === 2 ? ["50%", "50%"] : ["33.33%", "33.33%", "33.33%"]);
 
@@ -35,10 +35,7 @@ export function ColumnEditor({
             className="relative"
             style={{
                 backgroundColor: data.backgroundColor || 'transparent',
-                paddingTop: padding.top,
-                paddingBottom: padding.bottom,
-                paddingLeft: padding.left,
-                paddingRight: padding.right,
+                padding: `${padding}px`,
             }}
         >
 

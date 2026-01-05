@@ -15,6 +15,7 @@ import {
     BlockStyle,
     HeaderImageData,
     ImageData,
+    GifData,
     TextBlockData,
     ButtonData,
     DividerData,
@@ -108,6 +109,7 @@ function renderProperties(block: EmailBlock, onUpdate: (data: any, style?: Block
     switch (block.type) {
         case "HeaderImage": return <HeaderImageProperties block={block} onUpdate={onUpdate} />;
         case "Image": return <ImageProperties block={block} onUpdate={onUpdate} />;
+        case "Gif": return <GifProperties block={block} onUpdate={onUpdate} />;
         case "TextBlock": return <TextBlockProperties block={block} onUpdate={onUpdate} />;
         case "Button": return <ButtonProperties block={block} onUpdate={onUpdate} />;
         case "Divider": return <DividerProperties block={block} onUpdate={onUpdate} />;
@@ -249,6 +251,119 @@ function ImageProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (da
                             <div className="mt-2 flex items-center gap-1.5 text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded w-fit">
                                 <span>✓</span>
                                 <span>Image is clickable</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <BlockStylingSection
+                style={style}
+                onChange={(newStyle) => onUpdate(data, newStyle)}
+            />
+        </div>
+    );
+}
+
+function GifProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data: any, style?: BlockStyle) => void }) {
+    const data = block.data as GifData;
+    const style = block.style || {};
+
+    return (
+        <div className="space-y-5">
+            {/* Outlook Warning */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-xl border border-amber-200 flex items-start gap-2">
+                <span className="text-lg">⚠️</span>
+                <div>
+                    <p className="text-amber-800 text-xs font-semibold">Outlook Desktop Limitation</p>
+                    <p className="text-amber-700 text-[10px] mt-0.5">Outlook will display only the first frame. Design your GIF so frame #1 looks complete.</p>
+                </div>
+            </div>
+
+            {/* GIF Source */}
+            <div className="bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+                <div className="p-3">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2 block">GIF URL</Label>
+                    <Input
+                        value={data.src || ""}
+                        onChange={(e) => onUpdate({ ...data, src: e.target.value })}
+                        placeholder="https://example.com/animation.gif"
+                        className="bg-gray-50/50"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1.5">
+                        💡 Keep file size under 1MB for best deliverability
+                    </p>
+                </div>
+
+                {data.src && (
+                    <div className="border-t border-gray-100 p-3">
+                        <img
+                            src={data.src}
+                            alt={data.alt || "GIF Preview"}
+                            className="w-full rounded-lg border border-gray-200"
+                            style={{ maxHeight: "150px", objectFit: "contain" }}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Alt Text */}
+            <div>
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Alt Text</Label>
+                <Input
+                    value={data.alt || ""}
+                    onChange={(e) => onUpdate({ ...data, alt: e.target.value })}
+                    placeholder="Describe the GIF content"
+                    className="bg-gray-50/50"
+                />
+            </div>
+
+            {data.src && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    {/* Width */}
+                    <RangeControl
+                        label="Width"
+                        value={data.width === "auto" ? 100 : data.width || 100}
+                        onChange={(val) => onUpdate({ ...data, width: val })}
+                        min={10} max={100} step={5} unit="%"
+                    />
+
+                    {/* Alignment */}
+                    <div>
+                        <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</Label>
+                        <div className="flex gap-2 bg-gray-100/50 p-1 rounded-lg">
+                            {(["left", "center", "right"] as const).map((align) => (
+                                <button
+                                    key={align}
+                                    onClick={() => onUpdate({ ...data, alignment: align })}
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium capitalize transition-all duration-200 ${data.alignment === align
+                                        ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                                        : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                                        }`}
+                                >
+                                    {align}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Link URL */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100/50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-base">🔗</span>
+                            <Label htmlFor="gifLinkUrl" className="text-blue-900 font-semibold text-xs">Click Link (Optional)</Label>
+                        </div>
+                        <Input
+                            id="gifLinkUrl"
+                            value={data.linkUrl || ""}
+                            onChange={(e) => onUpdate({ ...data, linkUrl: e.target.value })}
+                            placeholder="https://yourwebsite.com"
+                            className="bg-white/80 border-blue-200 focus:bg-white focus:border-blue-400 transition-all text-sm"
+                        />
+                        {data.linkUrl && (
+                            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded w-fit">
+                                <span>✓</span>
+                                <span>GIF is clickable</span>
                             </div>
                         )}
                     </div>
@@ -597,7 +712,7 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                     <div>
                                         <Label className="text-[10px] text-gray-500 mb-1 block">Size</Label>
                                         <select
-                                            value={data.socialIconSize || 24}
+                                            value={data.socialIconSize || 32}
                                             onChange={(e) => onUpdate({ ...data, socialIconSize: parseInt(e.target.value) })}
                                             className="w-full text-xs border rounded-md py-1 px-2"
                                         >
@@ -610,34 +725,16 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                     <div>
                                         <Label className="text-[10px] text-gray-500 mb-1 block">Style</Label>
                                         <select
-                                            value={data.socialIconStyle || "color"}
-                                            onChange={(e) => onUpdate({ ...data, socialIconStyle: e.target.value })}
+                                            value={data.socialIconStyle || "white"}
+                                            onChange={(e) => onUpdate({ ...data, socialIconStyle: e.target.value as any })}
                                             className="w-full text-xs border rounded-md py-1 px-2"
                                         >
-                                            <option value="color">Brand Colors</option>
-                                            <option value="dark">Dark</option>
-                                            <option value="light">Light</option>
-                                            <option value="custom">Custom</option>
+                                            <option value="white">White (on color bg)</option>
+                                            <option value="black">Black</option>
+                                            <option value="brand">Brand Colors</option>
                                         </select>
                                     </div>
                                 </div>
-
-                                {data.socialIconStyle === "custom" && (
-                                    <div className="flex gap-2 items-center">
-                                        <Label className="text-[10px] text-gray-500">Custom Color:</Label>
-                                        <input
-                                            type="color"
-                                            value={data.socialIconColor || "#333333"}
-                                            onChange={(e) => onUpdate({ ...data, socialIconColor: e.target.value })}
-                                            className="w-8 h-8 rounded cursor-pointer"
-                                        />
-                                        <Input
-                                            value={data.socialIconColor || "#333333"}
-                                            onChange={(e) => onUpdate({ ...data, socialIconColor: e.target.value })}
-                                            className="text-xs font-mono w-24"
-                                        />
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -816,6 +913,7 @@ const socialPlatforms: Record<string, { name: string; icon: string; placeholder:
     linkedin: { name: "LinkedIn", icon: "💼", placeholder: "https://linkedin.com/company/yourcompany" },
     youtube: { name: "YouTube", icon: "🎬", placeholder: "https://youtube.com/@yourchannel" },
     tiktok: { name: "TikTok", icon: "🎵", placeholder: "https://tiktok.com/@yourhandle" },
+    whatsapp: { name: "WhatsApp", icon: "💬", placeholder: "https://wa.me/971501234567" },
     website: { name: "Website", icon: "🌐", placeholder: "https://yourwebsite.com" },
     email: { name: "Email", icon: "✉️", placeholder: "mailto:contact@example.com" },
     phone: { name: "Phone", icon: "📞", placeholder: "tel:+971501234567" },
@@ -898,6 +996,81 @@ function SocialIconsProperties({ block, onUpdate }: { block: EmailBlock; onUpdat
                             {icon.enabled && !icon.url && (
                                 <p className="text-[10px] text-amber-600">⚠️ Add URL to display this icon</p>
                             )}
+
+                            {/* Per-icon customization toggle */}
+                            <details className="group">
+                                <summary className="text-[10px] text-indigo-600 cursor-pointer hover:text-indigo-800 flex items-center gap-1">
+                                    <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    Customize this icon
+                                </summary>
+                                <div className="mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 space-y-2">
+                                    {/* Per-icon Size */}
+                                    <div className="flex items-center gap-2">
+                                        <Label className="text-[10px] text-gray-500 w-12">Size:</Label>
+                                        <select
+                                            value={icon.iconSize ?? ""}
+                                            onChange={(e) => updateIcon(index, { iconSize: e.target.value ? parseInt(e.target.value) : undefined })}
+                                            className="flex-1 text-[10px] border rounded py-0.5 px-1"
+                                        >
+                                            <option value="">Default ({data.iconSize || 32}px)</option>
+                                            <option value="24">24px</option>
+                                            <option value="32">32px</option>
+                                            <option value="40">40px</option>
+                                            <option value="48">48px</option>
+                                        </select>
+                                    </div>
+                                    {/* Per-icon Style */}
+                                    <div className="flex items-center gap-2">
+                                        <Label className="text-[10px] text-gray-500 w-12">Style:</Label>
+                                        <select
+                                            value={icon.iconStyle ?? ""}
+                                            onChange={(e) => updateIcon(index, { iconStyle: e.target.value as any || undefined })}
+                                            className="flex-1 text-[10px] border rounded py-0.5 px-1"
+                                        >
+                                            <option value="">Default ({data.iconStyle || "brand"})</option>
+                                            <option value="brand">Brand</option>
+                                            <option value="black">Black</option>
+                                            <option value="white">White</option>
+                                        </select>
+                                    </div>
+                                    {/* Per-icon Background */}
+                                    <div className="flex items-center gap-2">
+                                        <Label className="text-[10px] text-gray-500 w-12">Bg:</Label>
+                                        <select
+                                            value={icon.showBackground === undefined ? "" : icon.showBackground ? "yes" : "no"}
+                                            onChange={(e) => updateIcon(index, { showBackground: e.target.value === "" ? undefined : e.target.value === "yes" })}
+                                            className="text-[10px] border rounded py-0.5 px-1"
+                                        >
+                                            <option value="">Default</option>
+                                            <option value="yes">Show</option>
+                                            <option value="no">Hide</option>
+                                        </select>
+                                        {icon.showBackground !== false && (
+                                            <div className="flex items-center gap-1">
+                                                <div className="relative w-5 h-5 rounded overflow-hidden border border-gray-200 cursor-pointer">
+                                                    <input
+                                                        type="color"
+                                                        value={icon.backgroundColor || "#1877F2"}
+                                                        onChange={(e) => updateIcon(index, { backgroundColor: e.target.value })}
+                                                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                                                    />
+                                                    <div className="w-full h-full" style={{ backgroundColor: icon.backgroundColor || "#1877F2" }} />
+                                                </div>
+                                                {icon.backgroundColor && (
+                                                    <button
+                                                        onClick={() => updateIcon(index, { backgroundColor: undefined })}
+                                                        className="text-[9px] text-gray-400 hover:text-gray-600"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </details>
                         </div>
                     );
                 })}
@@ -986,12 +1159,11 @@ function SocialIconsProperties({ block, onUpdate }: { block: EmailBlock; onUpdat
                 {/* Icon Style */}
                 <div>
                     <Label className="text-xs text-gray-600 mb-2 block">Icon Style</Label>
-                    <div className="grid grid-cols-4 gap-2 bg-gray-100/50 p-1 rounded-lg">
+                    <div className="grid grid-cols-3 gap-2 bg-gray-100/50 p-1 rounded-lg">
                         {([
-                            { value: "color", label: "Brand" },
-                            { value: "dark", label: "Dark" },
-                            { value: "light", label: "Light" },
-                            { value: "custom", label: "Custom" },
+                            { value: "white", label: "White" },
+                            { value: "black", label: "Black" },
+                            { value: "brand", label: "Brand" },
                         ] as const).map(styleOption => (
                             <button
                                 key={styleOption.value}
@@ -1005,32 +1177,64 @@ function SocialIconsProperties({ block, onUpdate }: { block: EmailBlock; onUpdat
                             </button>
                         ))}
                     </div>
+                    <p className="text-[10px] text-gray-400 mt-1">White icons work best with colored backgrounds</p>
+                </div>
 
-                    {/* Custom Color Picker */}
-                    {data.iconStyle === "custom" && (
-                        <div className="mt-3 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-100/50">
-                            <Label className="text-xs text-purple-900 font-semibold mb-2 block">Custom Icon Color</Label>
-                            <div className="flex gap-2">
-                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-purple-200 shadow-sm shrink-0 cursor-pointer transition-transform hover:scale-105">
-                                    <input
-                                        type="color"
-                                        value={data.customColor || "#333333"}
-                                        onChange={(e) => onUpdate({ ...data, customColor: e.target.value })}
-                                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                                    />
-                                    <div className="w-full h-full" style={{ backgroundColor: data.customColor || "#333333" }} />
+                {/* Background Circle Settings */}
+                <div className="space-y-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100/50">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs text-indigo-900 font-semibold">Background Circle</Label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={data.showBackground !== false}
+                                onChange={(e) => onUpdate({ ...data, showBackground: e.target.checked })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-8 h-4 bg-gray-300 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4"></div>
+                        </label>
+                    </div>
+
+                    {data.showBackground !== false && (
+                        <>
+                            <div>
+                                <Label className="text-xs text-gray-600 mb-1 block">Background Color</Label>
+                                <div className="flex gap-2">
+                                    <div className="relative w-8 h-8 rounded overflow-hidden border border-gray-200 shrink-0 cursor-pointer">
+                                        <input
+                                            type="color"
+                                            value={data.backgroundColor || "#1877F2"}
+                                            onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
+                                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                                        />
+                                        <div className="w-full h-full" style={{ backgroundColor: data.backgroundColor || "#1877F2" }} />
+                                    </div>
+                                    <button
+                                        onClick={() => onUpdate({ ...data, backgroundColor: undefined })}
+                                        className="text-[10px] text-indigo-600 hover:text-indigo-800"
+                                    >
+                                        Use brand colors
+                                    </button>
                                 </div>
-                                <Input
-                                    value={data.customColor || "#333333"}
-                                    onChange={(e) => onUpdate({ ...data, customColor: e.target.value })}
-                                    className="font-mono text-xs uppercase flex-1 bg-white"
-                                    placeholder="#333333"
-                                />
                             </div>
-                            <p className="text-[10px] text-purple-600/70 mt-2">
-                                All icons will use this single color
-                            </p>
-                        </div>
+                            <div>
+                                <Label className="text-xs text-gray-600 mb-1 block">Corner Radius</Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {([{ value: 50, label: "Circle" }, { value: 8, label: "Rounded" }, { value: 0, label: "Square" }] as const).map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => onUpdate({ ...data, backgroundRadius: opt.value })}
+                                            className={`py-1 rounded text-[10px] transition-all ${(data.backgroundRadius ?? 50) === opt.value
+                                                ? "bg-indigo-600 text-white"
+                                                : "bg-white text-gray-600 hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>

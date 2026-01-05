@@ -3,6 +3,7 @@
 export type BlockType =
     | "HeaderImage"
     | "Image"
+    | "Gif"
     | "TextBlock"
     | "Button"
     | "Divider"
@@ -118,8 +119,7 @@ export interface FooterData {
     showSocialIcons?: boolean;
     socialIcons?: SocialIconItem[];
     socialIconSize?: number;
-    socialIconStyle?: "color" | "dark" | "light" | "custom";
-    socialIconColor?: string;
+    socialIconStyle?: "white" | "black" | "brand";  // Updated to match modern icon styles
 }
 
 export interface SpacerData {
@@ -159,25 +159,43 @@ export interface ContainerData {
     borderRadius?: number;  // Note: Limited Outlook support, degrades gracefully
 }
 
-// Social icon link item
+// Social icon link item with per-icon customization
 export interface SocialIconItem {
-    platform: "facebook" | "twitter" | "instagram" | "linkedin" | "youtube" | "tiktok" | "website" | "email" | "phone";
+    platform: "facebook" | "twitter" | "instagram" | "linkedin" | "youtube" | "tiktok" | "whatsapp" | "website" | "email" | "phone";
     url: string;
     enabled: boolean;
+    // Per-icon customization (optional - uses global settings if not set)
+    iconSize?: number;        // Override global size (24, 32, 40, 48)
+    iconStyle?: "white" | "black" | "brand";  // Override global style
+    showBackground?: boolean;  // Override global background setting
+    backgroundColor?: string;  // Custom background color for this icon
 }
 
 export interface SocialIconsData {
     icons: SocialIconItem[];
+    // Global defaults (used when per-icon settings not specified)
     iconSize: number;  // 24, 32, 40, 48
     iconSpacing: number;  // gap between icons
     alignment: "left" | "center" | "right";
-    iconStyle: "color" | "dark" | "light" | "custom";  // icon color theme
-    customColor?: string;  // custom hex color when iconStyle is "custom"
+    iconStyle: "white" | "black" | "brand";  // default: "brand"
+    // Background circle settings (industry standard approach)
+    showBackground: boolean;  // default: true
+    backgroundColor?: string;  // default background color (uses brand colors if not set)
+    backgroundRadius?: number;  // 0 = square, 50 = circle, or custom percentage
+}
+
+export interface GifData {
+    src: string;
+    alt: string;
+    width?: number | "auto";
+    alignment?: "left" | "center" | "right";
+    linkUrl?: string;
 }
 
 export type BlockData =
     | HeaderImageData
     | ImageData
+    | GifData
     | TextBlockData
     | ButtonData
     | DividerData
@@ -213,6 +231,13 @@ export const defaultBlockData: Record<BlockType, BlockData> = {
         linkUrl: "",
         size: "original",
     } as ImageData,
+    Gif: {
+        src: "",
+        alt: "Animated GIF",
+        width: "auto",
+        alignment: "center",
+        linkUrl: "",
+    } as GifData,
     TextBlock: {
         content: "Enter your text here...",
         fontSize: 16,
@@ -262,7 +287,9 @@ export const defaultBlockData: Record<BlockType, BlockData> = {
         iconSize: 32,
         iconSpacing: 12,
         alignment: "center",
-        iconStyle: "color",
+        iconStyle: "brand",  // Default to brand colors
+        showBackground: true,
+        backgroundRadius: 50,
     } as SocialIconsData,
 };
 
@@ -277,6 +304,11 @@ export const blockRegistry: Record<BlockType, { label: string; icon: string; des
         label: "Image",
         icon: "📷",
         description: "Inline image with link",
+    },
+    Gif: {
+        label: "GIF",
+        icon: "🎞️",
+        description: "Animated image (limited Outlook support)",
     },
     TextBlock: {
         label: "Text Block",

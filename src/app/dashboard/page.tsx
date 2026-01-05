@@ -71,9 +71,16 @@ export default async function DashboardPage() {
     }));
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-mesh-gradient transition-colors duration-300 relative overflow-hidden">
+            {/* Ambient Background Orbs */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-400/20 rounded-full blur-[100px] animate-float opacity-70" />
+                <div className="absolute top-[20%] right-[-10%] w-[30%] h-[30%] bg-indigo-400/20 rounded-full blur-[100px] animate-float-delayed opacity-70" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] bg-pink-400/20 rounded-full blur-[100px] animate-float-delayed opacity-50" />
+            </div>
+
             <Navbar user={session.user} />
-            <main className="container mx-auto px-4 py-8">
+            <main className="container mx-auto px-4 py-8 relative z-10">
                 <DashboardContent
                     campaigns={transformedCampaigns}
                     teamUsers={teamUsers}

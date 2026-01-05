@@ -13,6 +13,7 @@ export function BlocksPalette({ onAddBlock }: BlocksPaletteProps) {
     const blocks: BlockType[] = [
         "HeaderImage",
         "Image",
+        "Gif",
         "TextBlock",
         "Button",
         "Divider",

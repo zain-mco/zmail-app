@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { EmailBlock, BlockStyle, HeaderImageData, ImageData, TextBlockData, ButtonData, DividerData, FooterData, SpacerData, ColumnsData, SocialIconsData, SocialIconItem, ContainerData } from "@/lib/block-types";
+import { EmailBlock, BlockStyle, HeaderImageData, ImageData, GifData, TextBlockData, ButtonData, DividerData, FooterData, SpacerData, ColumnsData, SocialIconsData, SocialIconItem, ContainerData } from "@/lib/block-types";
 import { EMAIL_STYLES, getPaddingCSS } from "@/lib/email-styles";
 import { getBlockStyleCSS } from "@/lib/block-style-helpers";
 import { ColumnEditor } from "./ColumnEditor";
@@ -64,6 +64,8 @@ export function SortableBlock({
                 return <HeaderImageRenderer data={block.data as HeaderImageData} style={style} />;
             case "Image":
                 return <ImageRenderer data={block.data as ImageData} style={style} />;
+            case "Gif":
+                return <GifRenderer data={block.data as GifData} style={style} />;
             case "TextBlock":
                 return <TextBlockRenderer data={block.data as TextBlockData} style={style} />;
             case "Button":
@@ -320,6 +322,89 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
 }
 
 
+function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
+    const alignmentMap = {
+        left: "flex-start",
+        center: "center",
+        right: "flex-end",
+    } as const;
+
+    const padding = EMAIL_STYLES.padding.image;
+
+    if (!data.src) {
+        return (
+            <div
+                className="flex justify-center"
+                style={{
+                    paddingTop: padding.y,
+                    paddingBottom: padding.y,
+                    paddingLeft: padding.x,
+                    paddingRight: padding.x,
+                }}
+            >
+                <div className="w-full h-48 bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-gray-400 border-2 border-dashed border-pink-200 rounded">
+                    <div className="text-center">
+                        <div className="text-3xl mb-1">🎞️</div>
+                        <div className="text-sm font-medium">Click to add GIF</div>
+                        <div className="text-xs text-orange-500 mt-1">⚠️ Outlook shows 1st frame only</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    let imageStyle: React.CSSProperties = { display: 'block', maxWidth: '100%', height: 'auto' };
+
+    if (data.width && data.width !== "auto") {
+        imageStyle.width = `${data.width}%`;
+    } else {
+        imageStyle.width = '100%';
+    }
+
+    if (data.linkUrl) {
+        imageStyle.border = '0';
+    }
+
+    const imageElement = (
+        <img
+            src={data.src}
+            alt={data.alt || "Animated GIF"}
+            style={imageStyle}
+        />
+    );
+
+    return (
+        <div
+            style={{
+                display: "flex",
+                justifyContent: alignmentMap[data.alignment || "center"],
+                paddingTop: padding.y,
+                paddingBottom: padding.y,
+                paddingLeft: padding.x,
+                paddingRight: padding.x,
+            }}
+        >
+            {data.linkUrl ? (
+                <a
+                    href={data.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'block',
+                        textDecoration: 'none',
+                        border: '0',
+                    }}
+                >
+                    {imageElement}
+                </a>
+            ) : (
+                imageElement
+            )}
+        </div>
+    );
+}
+
+
 // This file contains the fixed TextBlockRenderer function
 // Copy this function to replace lines 262-286 in SortableBlock.tsx
 
@@ -415,9 +500,9 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                     if (!iconData) return null;
 
                     let fill = iconData.color;
-                    if (data.socialIconStyle === "dark") fill = iconData.dark;
-                    else if (data.socialIconStyle === "light") fill = "#FFFFFF";
-                    else if (data.socialIconStyle === "custom") fill = data.socialIconColor || "#333333";
+                    if (data.socialIconStyle === "black") fill = iconData.dark;
+                    else if (data.socialIconStyle === "white") fill = "#FFFFFF";
+                    else if (data.socialIconStyle === "brand") fill = iconData.color;
 
                     return (
                         <a
@@ -425,7 +510,7 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                             href={icon.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ display: 'block', width: data.socialIconSize || 24, height: data.socialIconSize || 24, border: 0 }}
+                            style={{ display: 'block', width: data.socialIconSize || 32, height: data.socialIconSize || 32, border: 0 }}
                             title={icon.platform}
                         >
                             <div dangerouslySetInnerHTML={{ __html: iconData.svg(fill) }} style={{ width: '100%', height: '100%' }} />
@@ -653,17 +738,23 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
         );
     }
 
-    const getIconColor = (platform: string) => {
-        const iconData = socialIcons[platform];
+    // Get icon color based on per-icon or global style
+    const getIconColor = (icon: SocialIconItem) => {
+        const iconData = socialIcons[icon.platform];
         if (!iconData) return "#666666";
 
-        switch (data.iconStyle) {
-            case "dark": return iconData.dark;
-            case "light": return "#FFFFFF";
-            case "custom": return data.customColor || "#333333";
+        const style = icon.iconStyle ?? data.iconStyle ?? "brand";
+        switch (style) {
+            case "black": return iconData.dark;
+            case "white": return "#FFFFFF";
+            case "brand":
             default: return iconData.color;
         }
     };
+
+    // Global defaults
+    const globalShowBg = data.showBackground !== false;
+    const globalBgRadius = data.backgroundRadius ?? 50;
 
     return (
         <div
@@ -679,7 +770,18 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
                 const iconData = socialIcons[icon.platform];
                 if (!iconData) return null;
 
-                const fill = getIconColor(icon.platform);
+                // Per-icon settings with fallback to global
+                const iconSize = icon.iconSize ?? data.iconSize ?? 32;
+                const showBg = icon.showBackground ?? globalShowBg;
+                const bgColor = icon.backgroundColor ?? data.backgroundColor ?? iconData.color;
+                const fill = getIconColor(icon);
+
+                // Background circle style
+                const bgStyle = showBg ? {
+                    backgroundColor: bgColor,
+                    borderRadius: globalBgRadius === 50 ? "50%" : `${globalBgRadius}%`,
+                    padding: "4px",
+                } : {};
 
                 return (
                     <a
@@ -688,18 +790,21 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                            display: "block",
-                            width: data.iconSize || 32,
-                            height: data.iconSize || 32,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: showBg ? iconSize + 8 : iconSize,
+                            height: showBg ? iconSize + 8 : iconSize,
                             textDecoration: "none",
                             border: "0",
+                            ...bgStyle,
                         }}
                         title={icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1)}
                     >
                         <div
                             style={{
-                                width: "100%",
-                                height: "100%",
+                                width: iconSize,
+                                height: iconSize,
                             }}
                             dangerouslySetInnerHTML={{ __html: iconData.svg(fill) }}
                         />

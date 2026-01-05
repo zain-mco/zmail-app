@@ -75,21 +75,17 @@ export function Navbar({ user }: NavbarProps) {
     };
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md shadow-soft transition-all duration-300">
+        <header className="sticky top-0 z-50 w-full border-b border-white/20 bg-white/60 backdrop-blur-xl shadow-sm transition-all duration-300 supports-[backdrop-filter]:bg-white/60">
             <nav className="container flex h-16 items-center justify-between px-6 mx-auto">
                 {/* ZMAIL Text Logo - Bold, Modern, Professional */}
                 <Link href="/" className="flex items-center space-x-2 group">
                     <motion.span
-                        className="text-2xl font-black tracking-tight"
+                        className="text-2xl font-black tracking-tight text-gradient"
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         style={{
                             fontFamily: "'Inter', system-ui, sans-serif",
-                            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
                         }}
                     >
                         ZMAIL

@@ -252,3 +252,100 @@
 .ProseMirror ol ol ol {
   list-style-type: lower-roman !important;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                          ZMAIL DASHBOARD REDESIGN                          */
+/* -------------------------------------------------------------------------- */
+
+@layer utilities {
+
+  /* Mesh Gradient Background */
+  .bg-mesh-gradient {
+    background-color: #f3f4f6;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+    background-attachment: fixed;
+    background-size: cover;
+  }
+
+  .dark .bg-mesh-gradient {
+    background-color: #0f172a;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+  }
+
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-sm relative overflow-hidden;
+  }
+
+  .dark .glass-card {
+    @apply bg-slate-900/70 backdrop-blur-md border border-slate-700/50 shadow-sm;
+  }
+
+  /* 3D Hover Effect */
+  .hover-3d {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-3d:hover {
+    transform: translateY(-5px);
+    box-shadow:
+      0 10px 30px -10px rgba(0, 0, 0, 0.1),
+      0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .hover-3d:hover {
+    box-shadow:
+      0 10px 30px -10px rgba(0, 0, 0, 0.5),
+      0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600;
+  }
+
+  /* Floating Animations */
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out 3s infinite;
+  }
+
+  /* Custom Scrollbar for dashboard */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+}

@@ -74,6 +74,12 @@ export function EditorWorkspace({
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
     const [isMounted, setIsMounted] = useState(false);
+    // Background settings - solid colors only (gradients have poor email client support)
+    const [contentBgColor, setContentBgColor] = useState(initialContent.settings?.contentBackgroundColor || "#ffffff");
+    const [showBgPanel, setShowBgPanel] = useState(false);
+
+    // Background is always solid color
+    const contentBackground = contentBgColor;
 
     // Re-validate if initialContent changes
     useEffect(() => {
@@ -372,7 +378,13 @@ export function EditorWorkspace({
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    content_json: { blocks },
+                    content_json: {
+                        blocks,
+                        settings: {
+                            ...initialContent.settings,
+                            contentBackgroundColor: contentBgColor
+                        }
+                    },
                     generateHtml: true,
                 }),
             });
@@ -441,6 +453,79 @@ export function EditorWorkspace({
                                 active={previewMode === "mobile"}
                             />
                         </ToolbarGroup>
+                        <ToolbarDivider />
+                        {/* Professional Background Settings Panel */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowBgPanel(!showBgPanel)}
+                                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-1.5 border border-gray-200 transition-colors"
+                                title="Email Background Settings"
+                            >
+                                <div
+                                    className="w-5 h-5 rounded border border-gray-300 shadow-inner"
+                                    style={{ background: contentBackground }}
+                                />
+                                <span className="text-xs font-medium text-gray-600">Background</span>
+                                <svg className={`w-3 h-3 text-gray-400 transition-transform ${showBgPanel ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Dropdown Panel */}
+                            {showBgPanel && (
+                                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-bold text-gray-800">Email Background</h4>
+                                        <button
+                                            onClick={() => setShowBgPanel(false)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    {/* Solid Color Settings */}
+                                    <div className="space-y-3">
+                                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block">Color</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={contentBgColor}
+                                                onChange={(e) => setContentBgColor(e.target.value)}
+                                                className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 p-0.5"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={contentBgColor}
+                                                onChange={(e) => setContentBgColor(e.target.value)}
+                                                className="flex-1 text-sm font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                                placeholder="#ffffff"
+                                            />
+                                        </div>
+                                        {/* Quick presets */}
+                                        <div className="flex gap-2 flex-wrap">
+                                            {["#ffffff", "#f8fafc", "#f3f4f6", "#fef3c7", "#ecfdf5", "#eff6ff", "#fce7f3", "#e0e7ff"].map(color => (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setContentBgColor(color)}
+                                                    className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${contentBgColor === color ? "border-indigo-500 ring-2 ring-indigo-200" : "border-gray-200"
+                                                        }`}
+                                                    style={{ backgroundColor: color }}
+                                                    title={color}
+                                                />
+                                            ))}
+                                        </div>
+                                        {/* Tip */}
+                                        <p className="text-[10px] text-gray-400 mt-2">
+                                            💡 Solid colors are recommended for best email client compatibility.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Section: Actions */}
@@ -546,8 +631,12 @@ export function EditorWorkspace({
                         >
                             <motion.div
                                 layout
-                                className="mx-auto transition-all duration-300 shadow-2xl rounded-lg overflow-hidden bg-white ring-1 ring-black/5"
-                                style={{ maxWidth: previewMode === "desktop" ? "640px" : "375px", minHeight: "800px" }}
+                                className="mx-auto transition-all duration-300 shadow-2xl rounded-lg overflow-hidden ring-1 ring-black/5"
+                                style={{
+                                    maxWidth: previewMode === "desktop" ? "640px" : "375px",
+                                    minHeight: "800px",
+                                    background: contentBackground
+                                }}
                             >
                                 <SortableContext
                                     items={blocks.map((b) => b.id)}
@@ -564,6 +653,7 @@ export function EditorWorkspace({
                                         onDeleteColumnBlock={handleDeleteColumnBlock}
                                         onUpdateContainerBlock={handleUpdateContainerBlock}
                                         onDeleteContainerBlock={handleDeleteContainerBlock}
+                                        contentBackground={contentBackground}
                                     />
                                 </SortableContext>
                             </motion.div>

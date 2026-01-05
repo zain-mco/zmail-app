@@ -17,6 +17,8 @@ interface EditorCanvasProps {
     // Container handlers
     onUpdateContainerBlock?: (containerId: string, blockId: string, newData: any) => void;
     onDeleteContainerBlock?: (containerId: string, blockId: string) => void;
+    // Background styling
+    contentBackground?: string;
 }
 
 export function EditorCanvas({
@@ -30,6 +32,7 @@ export function EditorCanvas({
     onDeleteColumnBlock,
     onUpdateContainerBlock,
     onDeleteContainerBlock,
+    contentBackground = "#ffffff",
 }: EditorCanvasProps) {
     const { setNodeRef } = useDroppable({
         id: "canvas",
@@ -40,15 +43,17 @@ export function EditorCanvas({
         return (
             <div
                 ref={setNodeRef}
-                className="flex items-center justify-center py-8"
-                style={{ backgroundColor: EMAIL_STYLES.colors.background }}
+                className="flex items-center justify-center"
+                style={{
+                    background: contentBackground,
+                    minHeight: 400
+                }}
             >
                 <div
-                    className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded"
+                    className="flex items-center justify-center border-2 border-dashed border-gray-300/50 rounded m-4"
                     style={{
-                        width: EMAIL_STYLES.containerWidth,
-                        minHeight: 400,
-                        backgroundColor: EMAIL_STYLES.colors.container,
+                        width: EMAIL_STYLES.containerWidth - 32,
+                        minHeight: 350,
                     }}
                 >
                     <div className="text-center text-gray-400">
@@ -63,18 +68,13 @@ export function EditorCanvas({
     return (
         <div
             ref={setNodeRef}
-            className="flex justify-center py-8"
-            style={{ backgroundColor: EMAIL_STYLES.colors.background }}
+            style={{
+                background: contentBackground,
+                minHeight: 400
+            }}
         >
-            {/* Fixed 600px email container - matches export exactly */}
-            <div
-                className="shadow-lg"
-                style={{
-                    width: EMAIL_STYLES.containerWidth,
-                    backgroundColor: EMAIL_STYLES.colors.container,
-                    minHeight: 400,
-                }}
-            >
+            {/* Email content area */}
+            <div style={{ width: '100%' }}>
                 {blocks.map((block, index) => (
                     <SortableBlock
                         key={block.id || `temp-block-${index}`}
@@ -100,4 +100,3 @@ export function EditorCanvas({
         </div>
     );
 }
-

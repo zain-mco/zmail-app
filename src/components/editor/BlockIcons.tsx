@@ -6,6 +6,7 @@ import React from "react";
 export const blockGradients: Record<string, { from: string; to: string; bg: string }> = {
     HeaderImage: { from: "#a855f7", to: "#ec4899", bg: "rgba(168, 85, 247, 0.1)" },
     Image: { from: "#3b82f6", to: "#06b6d4", bg: "rgba(59, 130, 246, 0.1)" },
+    Gif: { from: "#f472b6", to: "#c084fc", bg: "rgba(244, 114, 182, 0.1)" },
     TextBlock: { from: "#10b981", to: "#14b8a6", bg: "rgba(16, 185, 129, 0.1)" },
     Button: { from: "#f97316", to: "#ef4444", bg: "rgba(249, 115, 22, 0.1)" },
     Divider: { from: "#64748b", to: "#475569", bg: "rgba(100, 116, 139, 0.1)" },
@@ -39,6 +40,14 @@ export function BlockIcon({ type, size = 24, className = "" }: BlockIconProps) {
                 <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="2" stroke={`url(#${gradientId})`} fill="none" />
                 <circle cx="8" cy="10" r="2" fill={`url(#${gradientId})`} />
                 <path d="M21 15l-5-5L5 19" strokeWidth="2" stroke={`url(#${gradientId})`} fill="none" strokeLinecap="round" />
+            </>
+        ),
+        Gif: (
+            <>
+                <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="2" stroke={`url(#${gradientId})`} fill="none" />
+                <circle cx="9" cy="12" r="3" strokeWidth="1.5" stroke={`url(#${gradientId})`} fill="none" />
+                <path d="M9 10.5v3l2.5-1.5-2.5-1.5z" fill={`url(#${gradientId})`} />
+                <path d="M15 10h2M15 12h3M15 14h2" strokeWidth="1.5" stroke={`url(#${gradientId})`} strokeLinecap="round" />
             </>
         ),
         TextBlock: (

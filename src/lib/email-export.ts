@@ -15,6 +15,7 @@ import {
   EmailContent,
   HeaderImageData,
   ImageData,
+  GifData,
   TextBlockData,
   ButtonData,
   DividerData,
@@ -26,6 +27,56 @@ import {
   SocialIconItem,
 } from "./block-types";
 import { EMAIL_STYLES } from "./email-styles";
+
+/**
+ * CDN base URL for social icons
+ * Icons are hosted as PNG files in white, black, and brand color variants
+ */
+const SOCIAL_ICONS_CDN_BASE = "https://mco-cdn.b-cdn.net/mco/icons";
+
+/**
+ * Social platform brand colors for background circles
+ */
+const socialPlatformColors: Record<string, string> = {
+  facebook: "#1877F2",
+  twitter: "#000000",
+  instagram: "#E4405F",
+  linkedin: "#0A66C2",
+  youtube: "#FF0000",
+  tiktok: "#000000",
+  whatsapp: "#25D366",
+  website: "#4B5563",
+  email: "#6366F1",
+  phone: "#10B981",
+};
+
+/**
+ * Get the CDN URL for a social icon
+ * @param platform - The social platform name
+ * @param style - "white" | "black" | "brand"
+ */
+function getSocialIconUrl(platform: string, style: string): string {
+  // Map platform names to CDN filenames (some differ)
+  const platformFilenames: Record<string, string> = {
+    email: "mail",  // 'email' platform uses 'mail-xxx.png' filenames
+  };
+  const filename = platformFilenames[platform] || platform;
+
+  const styleMap: Record<string, string> = {
+    white: "white",
+    black: "black",
+    brand: "brand",
+  };
+  const styleSuffix = styleMap[style] || "white";
+  return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png`;
+}
+
+/**
+ * Get the brand color for a social platform (used for background circles)
+ */
+function getSocialPlatformColor(platform: string): string {
+  return socialPlatformColors[platform] || "#333333";
+}
 
 /**
  * Convert BlockStyle to email-safe HTML attributes and inline styles
@@ -108,6 +159,12 @@ function mergeStyles(existingStyle: string, blockStyle?: BlockStyle): string {
  */
 export function blocksToHtml(content: EmailContent): string {
   const blocks = content.blocks || [];
+  const settings = content.settings;
+  const contentBgColor = settings?.contentBackgroundColor || "#ffffff";
+
+  // Simple solid background (gradients not supported in most email clients)
+  const bgStyle = `background-color: ${contentBgColor};`;
+  const bgcolorAttr = contentBgColor;
 
   let bodyContent = blocks.map((block) => renderBlock(block)).join("\n");
 
@@ -131,7 +188,7 @@ export function blocksToHtml(content: EmailContent): string {
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4;">
     <tr>
       <td align="center" style="padding: 20px 0;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" bgcolor="${bgcolorAttr}" style="${bgStyle} max-width: 600px;">
 ${bodyContent}
         </table>
       </td>
@@ -148,6 +205,8 @@ function renderBlock(block: EmailBlock): string {
       return renderHeaderImage(block.data as HeaderImageData, style);
     case "Image":
       return renderImage(block.data as ImageData, style);
+    case "Gif":
+      return renderGif(block.data as GifData, style);
     case "TextBlock":
       return renderTextBlock(block.data as TextBlockData, style);
     case "Button":
@@ -258,18 +317,27 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
     sections.push(`<tr><td style="padding-bottom: 16px; text-align: center;">${imgHtml}</td></tr>`);
   }
 
-  // Social icons
+  // Social icons - using CDN PNG icons with optional background circles (industry standard)
   if (data.showSocialIcons && data.socialIcons && data.socialIcons.length > 0) {
-    const iconSize = data.socialIconSize || 24;
+    const iconSize = data.socialIconSize || 32;
     const enabledIcons = data.socialIcons.filter(icon => icon.enabled && icon.url);
     if (enabledIcons.length > 0) {
+      // Determine icon style: for footer, use white icons with brand color backgrounds by default
+      const iconStyle = data.socialIconStyle || "white";
       const iconHtml = enabledIcons.map(icon => {
-        const iconColor = data.socialIconStyle === "dark" ? "#333333" : data.socialIconStyle === "light" ? "#ffffff" : data.socialIconColor || "#333333";
-        // Use text-based icons for email compatibility
-        const iconLabel = icon.platform.charAt(0).toUpperCase();
-        return `<a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: inline-block; width: ${iconSize}px; height: ${iconSize}px; margin: 0 4px; text-decoration: none; color: ${iconColor}; background-color: ${data.socialIconStyle === "light" ? "#333333" : "#f3f4f6"}; border-radius: 50%; text-align: center; line-height: ${iconSize}px; font-size: ${Math.floor(iconSize * 0.5)}px; font-weight: bold;">${iconLabel}</a>`;
-      }).join("");
-      sections.push(`<tr><td style="padding-bottom: 12px; text-align: center;">${iconHtml}</td></tr>`);
+        const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
+        const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+        const bgColor = getSocialPlatformColor(icon.platform);
+        // Use table-based layout for maximum email compatibility with background circles
+        return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="border-radius: 4px; padding: 4px;">
+          <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
+            <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
+          </a>
+        </td>`;
+      }).join('<td width="8"></td>');
+      sections.push(`<tr><td style="padding-bottom: 12px; text-align: center;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>${iconHtml}</tr></table>
+      </td></tr>`);
     }
   }
 
@@ -342,26 +410,43 @@ function renderSocialIcons(data: SocialIconsData, style?: BlockStyle): string {
     return "";
   }
 
-  const iconSize = data.iconSize || 32;
+  // Global defaults
+  const globalIconSize = data.iconSize || 32;
   const alignment = data.alignment || "center";
   const iconSpacing = data.iconSpacing || 8;
+  const globalIconStyle = data.iconStyle || "brand";  // Default to brand colors
+  const globalShowBackground = data.showBackground !== false;
+  const globalBgColor = data.backgroundColor;
+  const bgRadius = data.backgroundRadius ?? 50;
 
-  // Get icon color based on style
-  const getIconColor = (iconStyle?: string, customColor?: string) => {
-    if (iconStyle === "dark") return "#333333";
-    if (iconStyle === "light") return "#ffffff";
-    if (iconStyle === "custom" && customColor) return customColor;
-    return "#333333"; // default
-  };
-
-  const iconColor = getIconColor(data.iconStyle, data.customColor);
-  const bgStyle = data.iconStyle === "light" ? "background-color: #333333;" : "background-color: #f3f4f6;";
-
-  // Build icon HTML - using text-based icons for maximum email compatibility
+  // Build icon HTML - using per-icon settings with fallback to global
   const iconHtml = enabledIcons.map(icon => {
-    const iconLabel = icon.platform.charAt(0).toUpperCase();
-    return `<a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: inline-block; width: ${iconSize}px; height: ${iconSize}px; margin: 0 ${iconSpacing / 2}px; text-decoration: none; color: ${iconColor}; ${bgStyle} border-radius: 50%; text-align: center; line-height: ${iconSize}px; font-size: ${Math.floor(iconSize * 0.4)}px; font-weight: bold;" title="${escapeHtml(icon.platform)}">${iconLabel}</a>`;
-  }).join("");
+    // Per-icon settings with fallback to global
+    const iconSize = icon.iconSize ?? globalIconSize;
+    const iconStyle = icon.iconStyle ?? globalIconStyle;
+    const showBg = icon.showBackground ?? globalShowBackground;
+    const bgColor = icon.backgroundColor ?? globalBgColor ?? getSocialPlatformColor(icon.platform);
+
+    const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
+    const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+
+    if (showBg) {
+      // Industry-standard approach: PNG icon on colored background
+      const radiusStyle = bgRadius === 50 ? "border-radius: 50%;" : (bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "");
+      return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="${radiusStyle} padding: 4px;">
+        <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+          <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
+        </a>
+      </td>`;
+    } else {
+      // No background - just the icon
+      return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
+        <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+          <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
+        </a>
+      </td>`;
+    }
+  }).join(`<td width="${iconSpacing}"></td>`);
 
   const baseStyle = "padding: 16px";
   const tdStyle = mergeStyles(baseStyle, style);
@@ -370,7 +455,7 @@ function renderSocialIcons(data: SocialIconsData, style?: BlockStyle): string {
 
   return `          <tr>
             <td align="${alignment}"${bgcolorAttr} style="${tdStyle}">
-              ${iconHtml}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${alignment}"><tr>${iconHtml}</tr></table>
             </td>
           </tr>`;
 }
@@ -420,6 +505,45 @@ function renderImage(data: ImageData, style?: BlockStyle): string {
 
   const widthAttr = `width="${width}"`;
 
+  let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; border: 0;">`;
+
+  // Wrap with link if provided
+  if (data.linkUrl) {
+    imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
+  }
+
+  const baseStyle = `padding: ${padding.y}px ${padding.x}px`;
+  const tdStyle = mergeStyles(baseStyle, style);
+  const { bgcolor } = getEmailSafeStyles(style);
+  const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
+
+  return `          <tr>
+            <td align="${alignment}"${bgcolorAttr} style="${tdStyle}">
+              ${imgHtml}
+            </td>
+          </tr>`;
+}
+
+function renderGif(data: GifData, style?: BlockStyle): string {
+  if (!data.src) {
+    return "";
+  }
+
+  const padding = EMAIL_STYLES.padding.image;
+  const alignment = data.alignment || "center";
+
+  // Calculate GIF width
+  const containerWidth = EMAIL_STYLES.containerWidth - (padding.x * 2);
+  let width: string;
+  if (data.width && data.width !== "auto") {
+    width = `${Math.floor(containerWidth * (Number(data.width) / 100))}`;
+  } else {
+    width = `${containerWidth}`;
+  }
+
+  const widthAttr = `width="${width}"`;
+
+  // GIFs are rendered as standard img tags - they animate in supporting clients
   let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; border: 0;">`;
 
   // Wrap with link if provided
@@ -579,6 +703,20 @@ function renderNestedBlock(block: EmailBlock): string {
                       </td>
                     </tr>`;
     }
+    case "Gif": {
+      const data = block.data as GifData;
+      if (!data.src) return "";
+      const alignment = data.alignment || "center";
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; border: 0;">`;
+      if (data.linkUrl) {
+        imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
+      }
+      return `                    <tr>
+                      <td align="${alignment}" style="padding: 5px 0;">
+                        ${imgHtml}
+                      </td>
+                    </tr>`;
+    }
     case "TextBlock": {
       const data = block.data as TextBlockData;
       const fontSize = data.fontSize || 16;
@@ -621,6 +759,68 @@ function renderNestedBlock(block: EmailBlock): string {
       const height = data.height || 20;
       return `                    <tr>
                       <td style="padding: 0; height: ${height}px; line-height: ${height}px; font-size: 0;">&nbsp;</td>
+                    </tr>`;
+    }
+    case "Divider": {
+      const data = block.data as DividerData;
+      const color = data.color || "#e5e7eb";
+      const thickness = data.thickness || 1;
+      const dividerStyle = data.style || "solid";
+      const width = data.width || 100;
+      return `                    <tr>
+                      <td style="padding: 10px 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${width}%" align="center">
+                          <tr>
+                            <td style="border-top: ${thickness}px ${dividerStyle} ${color}; font-size: 0; line-height: 0;">&nbsp;</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>`;
+    }
+    case "SocialIcons": {
+      const data = block.data as SocialIconsData;
+      const icons = data.icons || [];
+      const enabledIcons = icons.filter(icon => icon.enabled && icon.url);
+      if (enabledIcons.length === 0) return "";
+
+      // Global defaults
+      const globalIconSize = data.iconSize || 32;
+      const iconSpacing = data.iconSpacing || 8;
+      const globalIconStyle = data.iconStyle || "brand";
+      const globalShowBackground = data.showBackground !== false;
+      const globalBgColor = data.backgroundColor;
+      const bgRadius = data.backgroundRadius ?? 50;
+
+      const iconHtml = enabledIcons.map(icon => {
+        // Per-icon settings with fallback to global
+        const iconSize = icon.iconSize ?? globalIconSize;
+        const iconStyle = icon.iconStyle ?? globalIconStyle;
+        const showBg = icon.showBackground ?? globalShowBackground;
+        const bgColor = icon.backgroundColor ?? globalBgColor ?? getSocialPlatformColor(icon.platform);
+
+        const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
+        const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+
+        if (showBg) {
+          const radiusStyle = bgRadius === 50 ? "border-radius: 50%;" : (bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "");
+          return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="${radiusStyle} padding: 4px;">
+            <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+              <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0;">
+            </a>
+          </td>`;
+        } else {
+          return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
+            <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+              <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0;">
+            </a>
+          </td>`;
+        }
+      }).join(`<td width="${iconSpacing}"></td>`);
+
+      return `                    <tr>
+                      <td align="${data.alignment || "center"}" style="padding: 8px 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${iconHtml}</tr></table>
+                      </td>
                     </tr>`;
     }
     default:

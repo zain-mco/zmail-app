@@ -66,6 +66,10 @@ export interface HeaderImageData {
     src: string;
     alt: string;
     linkUrl?: string;
+    // Header image-specific border (applied to the image itself)
+    borderWidth?: number;
+    borderColor?: string;
+    borderRadius?: number;
 }
 
 export interface ImageData {
@@ -75,6 +79,10 @@ export interface ImageData {
     alignment?: "left" | "center" | "right";
     linkUrl?: string;
     size?: "original" | "fill" | "scale";
+    // Image-specific border (applied to the image itself)
+    borderWidth?: number;
+    borderColor?: string;
+    borderRadius?: number;
 }
 
 export interface TextBlockData {
@@ -93,6 +101,9 @@ export interface ButtonData {
     backgroundColor?: string;
     textColor?: string;
     borderRadius?: number;
+    // Button-specific border (applied to the button, not the block)
+    borderWidth?: number;
+    borderColor?: string;
 }
 
 export interface FooterData {
@@ -100,6 +111,11 @@ export interface FooterData {
     content: string;
     backgroundColor?: string;
     textColor?: string;
+
+    // Text styling options
+    fontFamily?: string;
+    fontWeight?: string;
+    fontSize?: number;
 
     // Optional footer image
     footerImage?: {
@@ -115,11 +131,14 @@ export interface FooterData {
     contactInfo?: string;  // Email, phone, etc.
     copyrightYear?: string;
 
-    // Social icons integration
+    // Social icons integration (enhanced to match main SocialIcons block)
     showSocialIcons?: boolean;
     socialIcons?: SocialIconItem[];
     socialIconSize?: number;
-    socialIconStyle?: "white" | "black" | "brand";  // Updated to match modern icon styles
+    socialIconStyle?: "white" | "black" | "brand";
+    socialIconSpacing?: number;
+    socialIconShowBackground?: boolean;
+    socialIconBackgroundRadius?: number;  // 0 = square, 50 = circle
 }
 
 export interface SpacerData {
@@ -135,9 +154,11 @@ export interface DividerData {
 
 export interface ColumnsData {
     columnCount: 1 | 2 | 3;
+    mobileColumnCount?: 1 | 2 | 3;  // Column count on mobile, defaults to 1 for stack
     columns: EmailBlock[][];
     gap: number;
     backgroundColor?: string;
+    transparentBackground?: boolean;  // If true, no background color applied
     padding?: number; // Simplified to match BlockStyle
     alignItems?: "start" | "center" | "end";
 }
@@ -146,8 +167,14 @@ export interface ContainerData {
     blocks: EmailBlock[];
     maxWidth?: number;  // Default 600px
     alignment?: "left" | "center" | "right";
+    // Layout direction
+    layoutDirection?: "column" | "row";  // Default "column" (vertical), "row" for horizontal inline
+    mobileLayoutDirection?: "column" | "row";  // Layout direction on mobile, default follows desktop
+    // Vertical alignment of items within container
+    verticalAlignment?: "start" | "center" | "end";  // Align items to top, middle, or bottom
     // Professional Email Container Styling
     backgroundColor?: string;  // Container background color
+    transparentBackground?: boolean;  // If true, no background color applied
     paddingTop?: number;
     paddingRight?: number;
     paddingBottom?: number;
@@ -190,6 +217,10 @@ export interface GifData {
     width?: number | "auto";
     alignment?: "left" | "center" | "right";
     linkUrl?: string;
+    // GIF-specific border (applied to the image itself)
+    borderWidth?: number;
+    borderColor?: string;
+    borderRadius?: number;
 }
 
 export type BlockData =
@@ -288,7 +319,7 @@ export const defaultBlockData: Record<BlockType, BlockData> = {
         iconSpacing: 12,
         alignment: "center",
         iconStyle: "brand",  // Default to brand colors
-        showBackground: true,
+        showBackground: false,
         backgroundRadius: 50,
     } as SocialIconsData,
 };

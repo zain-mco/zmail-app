@@ -165,6 +165,54 @@ function HeaderImageProperties({ block, onUpdate }: { block: EmailBlock; onUpdat
                 </div>
             )}
 
+            {/* Image Border Section */}
+            {data.src && (
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-3">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🔲</span> Image Border
+                    </Label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Border Color</Label>
+                            <ColorPicker
+                                value={data.borderColor || "#e5e7eb"}
+                                onChange={(val) => onUpdate({ ...data, borderColor: val })}
+                            />
+                        </div>
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                                <span>Border Width</span>
+                                <span className="text-indigo-600">{data.borderWidth || 0}px</span>
+                            </Label>
+                            <input
+                                type="range"
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={data.borderWidth || 0}
+                                onChange={(e) => onUpdate({ ...data, borderWidth: parseInt(e.target.value) })}
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Corner Radius</span>
+                            <span className="text-indigo-600">{data.borderRadius || 0}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={0}
+                            max={50}
+                            step={2}
+                            value={data.borderRadius || 0}
+                            onChange={(e) => onUpdate({ ...data, borderRadius: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+                </div>
+            )}
+
             <BlockStylingSection
                 style={style}
                 onChange={(newStyle) => onUpdate(data, newStyle)}
@@ -257,6 +305,54 @@ function ImageProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (da
                 </div>
             )}
 
+            {/* Image Border Section */}
+            {data.src && (
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-3">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🔲</span> Image Border
+                    </Label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Border Color</Label>
+                            <ColorPicker
+                                value={data.borderColor || "#e5e7eb"}
+                                onChange={(val) => onUpdate({ ...data, borderColor: val })}
+                            />
+                        </div>
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                                <span>Border Width</span>
+                                <span className="text-indigo-600">{data.borderWidth || 0}px</span>
+                            </Label>
+                            <input
+                                type="range"
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={data.borderWidth || 0}
+                                onChange={(e) => onUpdate({ ...data, borderWidth: parseInt(e.target.value) })}
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Corner Radius</span>
+                            <span className="text-indigo-600">{data.borderRadius || 0}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={0}
+                            max={50}
+                            step={2}
+                            value={data.borderRadius || 0}
+                            onChange={(e) => onUpdate({ ...data, borderRadius: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+                </div>
+            )}
+
             <BlockStylingSection
                 style={style}
                 onChange={(newStyle) => onUpdate(data, newStyle)}
@@ -280,42 +376,18 @@ function GifProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data
                 </div>
             </div>
 
-            {/* GIF Source */}
+            {/* GIF Source - Uses same ImageUploader as Image block */}
             <div className="bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-                <div className="p-3">
-                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2 block">GIF URL</Label>
-                    <Input
-                        value={data.src || ""}
-                        onChange={(e) => onUpdate({ ...data, src: e.target.value })}
-                        placeholder="https://example.com/animation.gif"
-                        className="bg-gray-50/50"
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1.5">
-                        💡 Keep file size under 1MB for best deliverability
-                    </p>
-                </div>
-
-                {data.src && (
-                    <div className="border-t border-gray-100 p-3">
-                        <img
-                            src={data.src}
-                            alt={data.alt || "GIF Preview"}
-                            className="w-full rounded-lg border border-gray-200"
-                            style={{ maxHeight: "150px", objectFit: "contain" }}
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Alt Text */}
-            <div>
-                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Alt Text</Label>
-                <Input
-                    value={data.alt || ""}
-                    onChange={(e) => onUpdate({ ...data, alt: e.target.value })}
-                    placeholder="Describe the GIF content"
-                    className="bg-gray-50/50"
+                <ImageUploader
+                    currentSrc={data.src}
+                    onUpload={(url) => onUpdate({ ...data, src: url })}
+                    onAltChange={(alt) => onUpdate({ ...data, alt })}
+                    currentAlt={data.alt}
+                    imageType="gif"
                 />
+                <p className="text-[10px] text-gray-500 px-3 pb-2">
+                    💡 Keep file size under 1MB for best deliverability
+                </p>
             </div>
 
             {data.src && (
@@ -366,6 +438,54 @@ function GifProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data
                                 <span>GIF is clickable</span>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* GIF Border Section */}
+            {data.src && (
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-3">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🔲</span> GIF Border
+                    </Label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Border Color</Label>
+                            <ColorPicker
+                                value={data.borderColor || "#e5e7eb"}
+                                onChange={(val) => onUpdate({ ...data, borderColor: val })}
+                            />
+                        </div>
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                                <span>Border Width</span>
+                                <span className="text-indigo-600">{data.borderWidth || 0}px</span>
+                            </Label>
+                            <input
+                                type="range"
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={data.borderWidth || 0}
+                                onChange={(e) => onUpdate({ ...data, borderWidth: parseInt(e.target.value) })}
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Corner Radius</span>
+                            <span className="text-indigo-600">{data.borderRadius || 0}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={0}
+                            max={50}
+                            step={2}
+                            value={data.borderRadius || 0}
+                            onChange={(e) => onUpdate({ ...data, borderRadius: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
                     </div>
                 </div>
             )}
@@ -524,10 +644,60 @@ function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                 </div>
             </div>
 
+            {/* Button Border Section */}
+            <div className="pt-4 border-t border-gray-100">
+                <Label className="mb-3 block text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🔲</span> Button Border
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">Border Color</Label>
+                        <ColorPicker
+                            value={data.borderColor || "#1e40af"}
+                            onChange={(val) => onUpdate({ ...data, borderColor: val })}
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Border Width</span>
+                            <span className="text-indigo-600">{data.borderWidth || 0}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={0}
+                            max={5}
+                            step={1}
+                            value={data.borderWidth || 0}
+                            onChange={(e) => onUpdate({ ...data, borderWidth: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Corner Radius - part of button styling */}
+            <div className="pt-4 border-t border-gray-100">
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                    <span>Corner Radius</span>
+                    <span className="text-indigo-600">{data.borderRadius || 6}px</span>
+                </Label>
+                <input
+                    type="range"
+                    min={0}
+                    max={30}
+                    step={2}
+                    value={data.borderRadius || 6}
+                    onChange={(e) => onUpdate({ ...data, borderRadius: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <p className="text-[10px] text-amber-600 mt-1.5">⚠️ Displays as square corners in Outlook</p>
+            </div>
+
             <BlockStylingSection
                 style={style}
                 onChange={(newStyle) => onUpdate(data, newStyle)}
                 showBackground={false}
+                showBorder={false}
             />
         </div>
     );
@@ -582,6 +752,58 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                     className="w-full h-16 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 focus:ring-2 focus:ring-indigo-500/20 resize-none bg-gray-50"
                     placeholder="Additional footer text..."
                 />
+            </div>
+
+            {/* Text Styling */}
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-3">
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🔤</span> Text Styling
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <Label className="text-[10px] text-gray-500 mb-1 block">Font</Label>
+                        <select
+                            value={data.fontFamily || "Arial, Helvetica, sans-serif"}
+                            onChange={(e) => onUpdate({ ...data, fontFamily: e.target.value })}
+                            className="w-full text-xs border rounded-md py-1.5 px-2 bg-white"
+                        >
+                            <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                            <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label className="text-[10px] text-gray-500 mb-1 block">Weight</Label>
+                        <select
+                            value={data.fontWeight || "normal"}
+                            onChange={(e) => onUpdate({ ...data, fontWeight: e.target.value })}
+                            className="w-full text-xs border rounded-md py-1.5 px-2 bg-white"
+                        >
+                            <option value="normal">Regular</option>
+                            <option value="bold">Bold</option>
+                            <option value="300">Light</option>
+                            <option value="600">Semi-Bold</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <Label className="text-[10px] text-gray-400 mb-1 flex justify-between">
+                        <span>Font Size</span>
+                        <span className="text-indigo-600">{data.fontSize || 12}px</span>
+                    </Label>
+                    <input
+                        type="range"
+                        min={10}
+                        max={18}
+                        step={1}
+                        value={data.fontSize || 12}
+                        onChange={(e) => onUpdate({ ...data, fontSize: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                </div>
             </div>
 
             {/* Footer Image Section */}
@@ -720,12 +942,14 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                             <option value={24}>24px</option>
                                             <option value={28}>28px</option>
                                             <option value={32}>32px</option>
+                                            <option value={40}>40px</option>
+                                            <option value={48}>48px</option>
                                         </select>
                                     </div>
                                     <div>
                                         <Label className="text-[10px] text-gray-500 mb-1 block">Style</Label>
                                         <select
-                                            value={data.socialIconStyle || "white"}
+                                            value={data.socialIconStyle || "brand"}
                                             onChange={(e) => onUpdate({ ...data, socialIconStyle: e.target.value as any })}
                                             className="w-full text-xs border rounded-md py-1 px-2"
                                         >
@@ -735,6 +959,55 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                         </select>
                                     </div>
                                 </div>
+
+                                {/* Background Circle Toggle */}
+                                <div className="pt-2 border-t border-gray-100 mt-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.socialIconShowBackground !== false}
+                                            onChange={(e) => onUpdate({ ...data, socialIconShowBackground: e.target.checked })}
+                                            className="rounded border-gray-300 text-indigo-600"
+                                        />
+                                        <span className="text-xs text-gray-700">Show colored background</span>
+                                    </label>
+                                </div>
+
+                                {/* Spacing & Radius */}
+                                {data.socialIconShowBackground !== false && (
+                                    <div className="grid grid-cols-2 gap-3 pt-2">
+                                        <div>
+                                            <Label className="text-[10px] text-gray-400 mb-1 flex justify-between">
+                                                <span>Spacing</span>
+                                                <span className="text-indigo-600">{data.socialIconSpacing || 8}px</span>
+                                            </Label>
+                                            <input
+                                                type="range"
+                                                min={4}
+                                                max={24}
+                                                step={2}
+                                                value={data.socialIconSpacing || 8}
+                                                onChange={(e) => onUpdate({ ...data, socialIconSpacing: parseInt(e.target.value) })}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-gray-400 mb-1 flex justify-between">
+                                                <span>Corner</span>
+                                                <span className="text-indigo-600">{data.socialIconBackgroundRadius ?? 50}%</span>
+                                            </Label>
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={50}
+                                                step={10}
+                                                value={data.socialIconBackgroundRadius ?? 50}
+                                                onChange={(e) => onUpdate({ ...data, socialIconBackgroundRadius: parseInt(e.target.value) })}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -841,9 +1114,11 @@ function ColumnsProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (
     const style = block.style || {};
     return (
         <div className="space-y-6">
-            {/* Layout Presets */}
+            {/* Desktop Layout */}
             <div>
-                <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider">Column Layout</Label>
+                <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🖥️</span> Desktop Columns
+                </Label>
                 <div className="grid grid-cols-3 gap-3">
                     {([1, 2, 3] as const).map((count) => (
                         <button
@@ -858,10 +1133,33 @@ function ColumnsProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (
                                 }`}
                         >
                             <span className="font-bold text-lg leading-none">{count}</span>
-                            <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Columns</span>
+                            <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Column{count > 1 ? 's' : ''}</span>
                         </button>
                     ))}
                 </div>
+            </div>
+
+            {/* Mobile Layout */}
+            <div>
+                <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📱</span> Mobile Columns
+                </Label>
+                <div className="grid grid-cols-3 gap-3">
+                    {([1, 2, 3] as const).map((count) => (
+                        <button
+                            key={count}
+                            onClick={() => onUpdate({ ...data, mobileColumnCount: count })}
+                            className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 ${(data.mobileColumnCount || 1) === count
+                                ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm"
+                                : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
+                                }`}
+                        >
+                            <span className="font-bold text-lg leading-none">{count}</span>
+                            <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Column{count > 1 ? 's' : ''}</span>
+                        </button>
+                    ))}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2">📱 Defaults to 1 column (stacked) on mobile</p>
             </div>
 
             {/* Gutter Size */}
@@ -896,6 +1194,53 @@ function ColumnsProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (
                     ))}
                 </div>
             </div>
+
+            {/* Transparent Background Toggle */}
+            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                <Label className="text-xs font-semibold text-gray-500 uppercase">
+                    Transparent Background
+                </Label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={data.transparentBackground || false}
+                        onChange={(e) => onUpdate({ ...data, transparentBackground: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+                </label>
+            </div>
+
+            {/* Background Color - only show when not transparent */}
+            {!data.transparentBackground && (
+                <div>
+                    <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">
+                        Background Color
+                    </Label>
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="color"
+                            value={data.backgroundColor || "#ffffff"}
+                            onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
+                            className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+                        />
+                        <Input
+                            value={data.backgroundColor || ""}
+                            onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
+                            placeholder="#ffffff"
+                            className="flex-1 bg-white/80"
+                        />
+                        {data.backgroundColor && (
+                            <button
+                                onClick={() => onUpdate({ ...data, backgroundColor: undefined })}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-800 leading-relaxed flex gap-2">
                 <span className="text-lg">💡</span>
@@ -1328,7 +1673,19 @@ function ImageUploader({ currentSrc, onUpload, imageType, currentAlt, onAltChang
     return (
         <div className="space-y-3">
             {currentSrc ? (
-                <div className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50 aspect-video flex items-center justify-center">
+                <div
+                    className="relative group rounded-lg overflow-hidden border border-gray-200 aspect-video flex items-center justify-center"
+                    style={{
+                        // Checkerboard pattern for transparent images (like Photoshop)
+                        backgroundImage: `linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                                          linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                                          linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                                          linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)`,
+                        backgroundSize: '16px 16px',
+                        backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+                        backgroundColor: '#ffffff'
+                    }}
+                >
                     <img src={currentSrc} alt="Preview" className="max-w-full max-h-full object-contain" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} className="h-8 text-xs">Replace</Button>
@@ -1419,34 +1776,156 @@ function ContainerProperties({ block, onUpdate }: { block: EmailBlock; onUpdate:
                 </div>
             </div>
 
-            {/* Background Color */}
+            {/* Desktop Layout Direction */}
             <div>
-                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">
-                    Background Color
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+                    <span>🖥️</span> Desktop Layout
                 </Label>
-                <div className="flex gap-2 items-center">
-                    <input
-                        type="color"
-                        value={data.backgroundColor || "#ffffff"}
-                        onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
-                        className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
-                    />
-                    <Input
-                        value={data.backgroundColor || ""}
-                        onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
-                        placeholder="#ffffff"
-                        className="flex-1 bg-white/80"
-                    />
-                    {data.backgroundColor && (
-                        <button
-                            onClick={() => onUpdate({ ...data, backgroundColor: undefined })}
-                            className="text-xs text-gray-400 hover:text-gray-600"
-                        >
-                            Clear
-                        </button>
-                    )}
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => onUpdate({ ...data, layoutDirection: "column" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${(data.layoutDirection || "column") === "column"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Column
+                    </button>
+                    <button
+                        onClick={() => onUpdate({ ...data, layoutDirection: "row" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${data.layoutDirection === "row"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Row
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile Layout Direction */}
+            <div>
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+                    <span>📱</span> Mobile Layout
+                </Label>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => onUpdate({ ...data, mobileLayoutDirection: "column" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${(data.mobileLayoutDirection || data.layoutDirection || "column") === "column"
+                            ? "bg-purple-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Column
+                    </button>
+                    <button
+                        onClick={() => onUpdate({ ...data, mobileLayoutDirection: "row" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${data.mobileLayoutDirection === "row"
+                            ? "bg-purple-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Row
+                    </button>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">📱 Mobile defaults to desktop layout if not set</p>
+            </div>
+
+            {/* Vertical Alignment */}
+            <div>
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">
+                    Vertical Alignment
+                </Label>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => onUpdate({ ...data, verticalAlignment: "start" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${(data.verticalAlignment || "start") === "start"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        Top
+                    </button>
+                    <button
+                        onClick={() => onUpdate({ ...data, verticalAlignment: "center" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${data.verticalAlignment === "center"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        Middle
+                    </button>
+                    <button
+                        onClick={() => onUpdate({ ...data, verticalAlignment: "end" })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${data.verticalAlignment === "end"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                    >
+                        Bottom
+                    </button>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Align items within the container</p>
+            </div>
+
+            {/* Transparent Background Toggle */}
+            <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-gray-500 uppercase">
+                    Transparent Background
+                </Label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={data.transparentBackground || false}
+                        onChange={(e) => onUpdate({ ...data, transparentBackground: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+                </label>
+            </div>
+
+            {/* Background Color - only show when not transparent */}
+            {!data.transparentBackground && (
+                <div>
+                    <Label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase">
+                        Background Color
+                    </Label>
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="color"
+                            value={data.backgroundColor || "#ffffff"}
+                            onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
+                            className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+                        />
+                        <Input
+                            value={data.backgroundColor || ""}
+                            onChange={(e) => onUpdate({ ...data, backgroundColor: e.target.value })}
+                            placeholder="#ffffff"
+                            className="flex-1 bg-white/80"
+                        />
+                        {data.backgroundColor && (
+                            <button
+                                onClick={() => onUpdate({ ...data, backgroundColor: undefined })}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Padding */}
             <div>

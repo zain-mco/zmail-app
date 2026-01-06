@@ -11,8 +11,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ZMAIL - Email Campaign Builder",
+  title: "Z-EMAIL - Email Campaign Builder",
   description: "Professional email campaign builder",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

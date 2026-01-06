@@ -50,11 +50,12 @@ export default async function EditorPage({ params }: EditorPageProps) {
     const canEdit = permission === "OWNER" || permission === "EDIT";
 
     // Parse content_json - handle Prisma JsonValue type
-    const contentJson = campaign.content_json as { blocks?: unknown[] } | null;
+    const contentJson = campaign.content_json as { blocks?: unknown[]; settings?: unknown } | null;
     const initialContent: EmailContent = {
         blocks: Array.isArray(contentJson?.blocks)
             ? (contentJson.blocks as EmailContent["blocks"])
             : [],
+        settings: contentJson?.settings as EmailContent["settings"],
     };
 
     return (

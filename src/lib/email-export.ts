@@ -237,9 +237,23 @@ function renderHeaderImage(data: HeaderImageData, style?: BlockStyle): string {
   const tdStyle = mergeStyles("padding: 0", style);
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
 
+  // Build image-specific border styles
+  let imgBorderStyle = "border: 0;";
+  if (data.borderWidth && data.borderWidth > 0) {
+    imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
+  }
+  const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
+
+  // Build link-wrapped or standalone image
+  const imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="600" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
+
+  const content = data.linkUrl
+    ? `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="display: block; text-decoration: none;">${imgHtml}</a>`
+    : imgHtml;
+
   return `          <tr>
             <td align="center"${bgcolorAttr} style="${tdStyle}">
-              <img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="600" style="display: block; max-width: 100%; height: auto; border: 0;">
+              ${content}
             </td>
           </tr>`;
 }
@@ -279,6 +293,11 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   const textColor = data.textColor || EMAIL_STYLES.colors.buttonText;
   const borderRadius = data.borderRadius || 6;
 
+  // Button-specific border (applied to the button itself, not the block)
+  const buttonBorder = data.borderWidth && data.borderWidth > 0
+    ? `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || bgColor)};`
+    : "";
+
   const containerStyle = mergeStyles(`padding: ${padding.y}px ${padding.x}px`, style);
   const { bgcolor } = getEmailSafeStyles(style);
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
@@ -287,7 +306,7 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
             <td align="center"${bgcolorAttr} style="${containerStyle}">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px;">
+                  <td style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; ${buttonBorder}">
                     <a href="${escapeHtml(data.url)}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: ${EMAIL_STYLES.fonts.sizes.button}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
                   </td>
                 </tr>
@@ -301,7 +320,12 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
   const bgColor = data.backgroundColor || EMAIL_STYLES.colors.footerBg;
   const textColor = data.textColor || EMAIL_STYLES.colors.footerText;
 
-  const baseStyle = `padding: ${padding}px; background-color: ${escapeHtml(bgColor)}; border-top: 1px solid #e9ecef`;
+  // Text styling with defaults
+  const fontFamily = data.fontFamily || "Arial, Helvetica, sans-serif";
+  const fontWeight = data.fontWeight || "normal";
+  const fontSize = data.fontSize || 12;
+
+  const baseStyle = `padding: ${padding}px; background-color: ${escapeHtml(bgColor)}; border-top: 1px solid #e9ecef; font-family: ${fontFamily}; font-weight: ${fontWeight}; font-size: ${fontSize}px`;
   const tdStyle = mergeStyles(baseStyle, style);
   const { bgcolor } = getEmailSafeStyles(style);
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : ` bgcolor="${escapeHtml(bgColor)}"`;
@@ -317,24 +341,39 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
     sections.push(`<tr><td style="padding-bottom: 16px; text-align: center;">${imgHtml}</td></tr>`);
   }
 
-  // Social icons - using CDN PNG icons with optional background circles (industry standard)
+  // Social icons - using CDN PNG icons with optional background circles (enhanced)
   if (data.showSocialIcons && data.socialIcons && data.socialIcons.length > 0) {
     const iconSize = data.socialIconSize || 32;
+    const iconSpacing = data.socialIconSpacing || 8;
+    const showBackground = data.socialIconShowBackground !== false;
+    const bgRadius = data.socialIconBackgroundRadius ?? 50;
     const enabledIcons = data.socialIcons.filter(icon => icon.enabled && icon.url);
+
     if (enabledIcons.length > 0) {
-      // Determine icon style: for footer, use white icons with brand color backgrounds by default
-      const iconStyle = data.socialIconStyle || "white";
+      // Determine icon style
+      const iconStyle = data.socialIconStyle || "brand";
       const iconHtml = enabledIcons.map(icon => {
         const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
         const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
-        const bgColor = getSocialPlatformColor(icon.platform);
-        // Use table-based layout for maximum email compatibility with background circles
-        return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="border-radius: 4px; padding: 4px;">
+        const iconBgColor = getSocialPlatformColor(icon.platform);
+
+        if (showBackground) {
+          // Use table-based layout for maximum email compatibility with background circles
+          const radiusStyle = bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "";
+          return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${iconBgColor}" style="${radiusStyle} padding: 4px;">
           <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
             <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
           </a>
         </td>`;
-      }).join('<td width="8"></td>');
+        } else {
+          // No background - just the icon
+          return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
+          <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
+            <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
+          </a>
+        </td>`;
+        }
+      }).join(`<td width="${iconSpacing}"></td>`);
       sections.push(`<tr><td style="padding-bottom: 12px; text-align: center;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>${iconHtml}</tr></table>
       </td></tr>`);
@@ -354,17 +393,18 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
     if (data.contactInfo) {
       structuredHtml += `<div style="opacity: 0.8;">${escapeHtml(data.contactInfo)}</div>`;
     }
-    sections.push(`<tr><td style="font-size: ${EMAIL_STYLES.fonts.sizes.footer}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; padding-bottom: 8px;">${structuredHtml}</td></tr>`);
+    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; padding-bottom: 8px;">${structuredHtml}</td></tr>`);
   }
 
   // Custom content / legacy text
   if (data.content) {
-    sections.push(`<tr><td style="font-size: ${EMAIL_STYLES.fonts.sizes.footer}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">${escapeHtml(data.content).replace(/\n/g, "<br>")}</td></tr>`);
+    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">${escapeHtml(data.content).replace(/\n/g, "<br>")}</td></tr>`);
   }
 
   // Copyright
   if (data.copyrightYear) {
-    sections.push(`<tr><td style="font-size: 11px; opacity: 0.7; color: ${escapeHtml(textColor)}; text-align: center; padding-top: 8px;">© ${escapeHtml(data.copyrightYear)} ${escapeHtml(data.companyName || "Your Company")}. All rights reserved.</td></tr>`);
+    const copyrightFontSize = Math.max(fontSize - 1, 10);
+    sections.push(`<tr><td style="font-size: ${copyrightFontSize}px; opacity: 0.7; color: ${escapeHtml(textColor)}; text-align: center; padding-top: 8px;">© ${escapeHtml(data.copyrightYear)} ${escapeHtml(data.companyName || "Your Company")}. All rights reserved.</td></tr>`);
   }
 
   // Footer image below
@@ -377,7 +417,7 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
 
   // If no content at all, show placeholder
   if (sections.length === 0) {
-    sections.push(`<tr><td style="font-size: ${EMAIL_STYLES.fonts.sizes.footer}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">Footer text</td></tr>`);
+    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">Footer text</td></tr>`);
   }
 
   return `          <tr>
@@ -505,7 +545,14 @@ function renderImage(data: ImageData, style?: BlockStyle): string {
 
   const widthAttr = `width="${width}"`;
 
-  let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; border: 0;">`;
+  // Build image-specific border styles
+  let imgBorderStyle = "border: 0;";
+  if (data.borderWidth && data.borderWidth > 0) {
+    imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
+  }
+  const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
+
+  let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
 
   // Wrap with link if provided
   if (data.linkUrl) {
@@ -543,8 +590,15 @@ function renderGif(data: GifData, style?: BlockStyle): string {
 
   const widthAttr = `width="${width}"`;
 
+  // Build GIF-specific border styles
+  let imgBorderStyle = "border: 0;";
+  if (data.borderWidth && data.borderWidth > 0) {
+    imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
+  }
+  const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
+
   // GIFs are rendered as standard img tags - they animate in supporting clients
-  let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; border: 0;">`;
+  let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
 
   // Wrap with link if provided
   if (data.linkUrl) {

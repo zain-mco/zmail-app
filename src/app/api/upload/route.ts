@@ -4,12 +4,10 @@ import { uploadToBunny } from "@/lib/bunny";
 import { prisma } from "@/lib/prisma";
 import sharp from "sharp";
 
-// Allowed image types for email use
+// Only allow PNG and JPG for email use
 const ALLOWED_TYPES = [
     "image/jpeg",
     "image/png",
-    "image/gif",
-    "image/webp",
 ];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB before processing
@@ -18,7 +16,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB before processing
 const EMAIL_IMAGE_SIZES = {
     header: 600, // Full width header
     content: 560, // Content images with padding
-    maxFileSize: 200 * 1024, // 200KB max after processing
+    maxFileSize: 500 * 1024, // 500KB max after processing (increased for PNG)
 };
 
 export async function POST(request: NextRequest) {
@@ -47,11 +45,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
-        // Validate file type
+        // Validate file type - only PNG and JPG
         if (!ALLOWED_TYPES.includes(file.type)) {
             return NextResponse.json(
                 {
-                    error: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(", ")}`,
+                    error: `Only PNG and JPG images are allowed.`,
                 },
                 { status: 400 }
             );
@@ -74,47 +72,83 @@ export async function POST(request: NextRequest) {
             ? EMAIL_IMAGE_SIZES.header
             : EMAIL_IMAGE_SIZES.content;
 
-        // Process image with sharp
+        // Preserve original format - PNG stays PNG, JPG stays JPG
+        const isPng = file.type === "image/png";
+        const outputExtension = isPng ? ".png" : ".jpg";
+
+        // Process image with sharp - preserve original format
         let processedBuffer: Buffer;
+
         try {
             const image = sharp(buffer);
             const metadata = await image.metadata();
 
-            // Resize if image is wider than target
+            // Resize if image is wider than target, but keep original format
             if (metadata.width && metadata.width > targetWidth) {
-                processedBuffer = await image
-                    .resize(targetWidth, null, {
-                        withoutEnlargement: true,
-                        fit: "inside",
-                    })
-                    .jpeg({
-                        quality: 85,
-                        progressive: true,
-                    })
-                    .toBuffer();
+                if (isPng) {
+                    processedBuffer = await image
+                        .resize(targetWidth, null, {
+                            withoutEnlargement: true,
+                            fit: "inside",
+                        })
+                        .png({
+                            compressionLevel: 8,
+                        })
+                        .toBuffer();
+                } else {
+                    processedBuffer = await image
+                        .resize(targetWidth, null, {
+                            withoutEnlargement: true,
+                            fit: "inside",
+                        })
+                        .jpeg({
+                            quality: 85,
+                            progressive: true,
+                        })
+                        .toBuffer();
+                }
             } else {
-                // Just optimize without resizing
-                processedBuffer = await image
-                    .jpeg({
-                        quality: 85,
-                        progressive: true,
-                    })
-                    .toBuffer();
+                // Just optimize without resizing, keep original format
+                if (isPng) {
+                    processedBuffer = await image
+                        .png({
+                            compressionLevel: 8,
+                        })
+                        .toBuffer();
+                } else {
+                    processedBuffer = await image
+                        .jpeg({
+                            quality: 85,
+                            progressive: true,
+                        })
+                        .toBuffer();
+                }
             }
 
-            // Check if processed file is still too large
+            // Check if processed file is still too large - reduce quality
             if (processedBuffer.length > EMAIL_IMAGE_SIZES.maxFileSize) {
-                // Reduce quality further
-                processedBuffer = await sharp(buffer)
-                    .resize(targetWidth, null, {
-                        withoutEnlargement: true,
-                        fit: "inside",
-                    })
-                    .jpeg({
-                        quality: 70,
-                        progressive: true,
-                    })
-                    .toBuffer();
+                if (isPng) {
+                    processedBuffer = await sharp(buffer)
+                        .resize(targetWidth, null, {
+                            withoutEnlargement: true,
+                            fit: "inside",
+                        })
+                        .png({
+                            compressionLevel: 9,
+                        })
+                        .toBuffer();
+                } else {
+                    processedBuffer = await sharp(buffer)
+                        .resize(targetWidth, null, {
+                            withoutEnlargement: true,
+                            fit: "inside",
+                        })
+                        .jpeg({
+                            quality: 70,
+                            progressive: true,
+                        })
+                        .toBuffer();
+                }
             }
         } catch (error) {
             console.error("Image processing error:", error);
@@ -124,13 +158,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate filename with .jpg extension
+        // Generate filename with appropriate extension
         const originalName = file.name.replace(/\.[^/.]+$/, "");
         const sanitizedName = originalName
             .toLowerCase()
             .replace(/[^a-z0-9-]/g, "-")
             .replace(/-+/g, "-");
-        const filename = `${sanitizedName}.jpg`;
+        const filename = `${sanitizedName}${outputExtension}`;
 
         // Upload to Bunny.net
         const bytes = new Uint8Array(processedBuffer);
@@ -156,6 +190,7 @@ export async function POST(request: NextRequest) {
             originalSize: file.size,
             processedSize: processedBuffer.length,
             width: targetWidth,
+            format: isPng ? "png" : "jpg",
         });
     } catch (error) {
         console.error("Error uploading file:", error);

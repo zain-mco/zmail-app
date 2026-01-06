@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -77,19 +78,22 @@ export function Navbar({ user }: NavbarProps) {
     return (
         <header className="sticky top-0 z-50 w-full border-b border-white/20 bg-white/60 backdrop-blur-xl shadow-sm transition-all duration-300 supports-[backdrop-filter]:bg-white/60">
             <nav className="container flex h-16 items-center justify-between px-6 mx-auto">
-                {/* ZMAIL Text Logo - Bold, Modern, Professional */}
-                <Link href="/" className="flex items-center space-x-2 group">
-                    <motion.span
-                        className="text-2xl font-black tracking-tight text-gradient"
+                {/* Logo - Professional Brand Image */}
+                <Link href="/" className="flex items-center group">
+                    <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                        style={{
-                            fontFamily: "'Inter', system-ui, sans-serif",
-                        }}
                     >
-                        ZMAIL
-                    </motion.span>
+                        <Image
+                            src="/mainlogo.png"
+                            alt="Logo"
+                            width={120}
+                            height={40}
+                            className="h-8 w-auto object-contain"
+                            priority
+                        />
+                    </motion.div>
                 </Link>
 
                 {/* Navigation Links & User Menu */}

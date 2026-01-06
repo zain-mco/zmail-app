@@ -654,6 +654,7 @@ export function EditorWorkspace({
                                         onUpdateContainerBlock={handleUpdateContainerBlock}
                                         onDeleteContainerBlock={handleDeleteContainerBlock}
                                         contentBackground={contentBackground}
+                                        previewMode={previewMode}
                                     />
                                 </SortableContext>
                             </motion.div>

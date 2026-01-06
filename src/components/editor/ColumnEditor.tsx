@@ -30,11 +30,14 @@ export function ColumnEditor({
 
     const widths = columnCount === 1 ? ["100%"] : (columnCount === 2 ? ["50%", "50%"] : ["33.33%", "33.33%", "33.33%"]);
 
+    // Determine background color - use transparent if flag is set
+    const bgColor = data.transparentBackground ? 'transparent' : (data.backgroundColor || 'transparent');
+
     return (
         <div
             className="relative"
             style={{
-                backgroundColor: data.backgroundColor || 'transparent',
+                backgroundColor: bgColor,
                 padding: `${padding}px`,
             }}
         >

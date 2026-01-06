@@ -40,6 +40,15 @@ export function ExportModal({ campaignId, blocks, onClose }: ExportModalProps) {
         URL.revokeObjectURL(url);
     };
 
+    const handlePreviewInNewWindow = () => {
+        // Create a new window and write the HTML directly
+        const previewWindow = window.open("", "_blank");
+        if (previewWindow) {
+            previewWindow.document.write(html);
+            previewWindow.document.close();
+        }
+    };
+
     return (
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
@@ -48,12 +57,15 @@ export function ExportModal({ campaignId, blocks, onClose }: ExportModalProps) {
                 </DialogHeader>
 
                 <div className="flex-1 overflow-hidden flex flex-col gap-4">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         <Button onClick={handleCopy} variant="outline">
                             {copied ? "✓ Copied!" : "Copy to Clipboard"}
                         </Button>
                         <Button onClick={handleDownload} variant="outline">
                             Download .html
+                        </Button>
+                        <Button onClick={handlePreviewInNewWindow} variant="default" className="bg-indigo-600 hover:bg-indigo-700">
+                            🔗 Preview in New Window
                         </Button>
                     </div>
 
@@ -79,3 +91,4 @@ export function ExportModal({ campaignId, blocks, onClose }: ExportModalProps) {
         </Dialog>
     );
 }
+

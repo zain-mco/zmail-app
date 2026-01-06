@@ -22,6 +22,8 @@ interface SortableBlockProps {
     onUpdateContainerBlock?: (containerId: string, blockId: string, newData: any) => void;
     onDeleteContainerBlock?: (containerId: string, blockId: string) => void;
     onSelectContainerBlock?: (blockId: string) => void;
+    // Preview mode for responsive layouts
+    previewMode?: "desktop" | "mobile";
 }
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +43,7 @@ export function SortableBlock({
     onUpdateContainerBlock,
     onDeleteContainerBlock,
     onSelectContainerBlock,
+    previewMode = "desktop",
 }: SortableBlockProps) {
     const {
         attributes,
@@ -107,6 +110,7 @@ export function SortableBlock({
                             onUpdateContainerBlock={onUpdateContainerBlock}
                             onDeleteContainerBlock={onDeleteContainerBlock}
                             onSelectBlock={onSelectContainerBlock}
+                            previewMode={previewMode}
                         />
                     );
                 }
@@ -203,16 +207,30 @@ function HeaderImageRenderer({ data, style }: { data: HeaderImageData; style?: B
         );
     }
 
+    // Build image style with border properties
+    const imageStyle: React.CSSProperties = {
+        width: '100%',
+        height: 'auto',
+        display: 'block',
+    };
+
+    // Apply image-specific border (to the image itself)
+    if (data.borderWidth && data.borderWidth > 0) {
+        imageStyle.border = `${data.borderWidth}px solid ${data.borderColor || "#e5e7eb"}`;
+    } else if (data.linkUrl) {
+        imageStyle.border = '0';
+    }
+
+    // Apply border radius to the image
+    if (data.borderRadius && data.borderRadius > 0) {
+        imageStyle.borderRadius = `${data.borderRadius}px`;
+    }
+
     const imageElement = (
         <img
             src={data.src}
             alt={data.alt || "Header"}
-            style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
-                border: data.linkUrl ? '0' : undefined,
-            }}
+            style={imageStyle}
         />
     );
 
@@ -223,11 +241,14 @@ function HeaderImageRenderer({ data, style }: { data: HeaderImageData; style?: B
                     href={data.linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.preventDefault()}
                     style={{
                         display: 'block',
                         textDecoration: 'none',
                         border: '0',
+                        cursor: 'pointer',
                     }}
+                    title={`Link: ${data.linkUrl}`}
                 >
                     {imageElement}
                 </a>
@@ -246,6 +267,7 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
     } as const;
 
     const padding = EMAIL_STYLES.padding.image;
+    const blockStyle = getBlockStyleCSS(style);
 
     if (!data.src) {
         return (
@@ -277,9 +299,17 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
         imageStyle.width = `${data.width}%`;
     }
 
-    // Add border:0 for email safety when image is linked
-    if (data.linkUrl) {
+    // Apply image-specific border (to the image itself)
+    if (data.borderWidth && data.borderWidth > 0) {
+        imageStyle.border = `${data.borderWidth}px solid ${data.borderColor || "#e5e7eb"}`;
+    } else if (data.linkUrl) {
+        // Add border:0 for email safety when image is linked
         imageStyle.border = '0';
+    }
+
+    // Apply border radius to the image
+    if (data.borderRadius && data.borderRadius > 0) {
+        imageStyle.borderRadius = `${data.borderRadius}px`;
     }
 
     const imageElement = (
@@ -299,6 +329,7 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
                 paddingBottom: padding.y,
                 paddingLeft: padding.x,
                 paddingRight: padding.x,
+                ...blockStyle,
             }}
         >
             {data.linkUrl ? (
@@ -306,11 +337,14 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
                     href={data.linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.preventDefault()}
                     style={{
                         display: 'block',
                         textDecoration: 'none',
                         border: '0',
+                        cursor: 'pointer',
                     }}
+                    title={`Link: ${data.linkUrl}`}
                 >
                     {imageElement}
                 </a>
@@ -330,6 +364,7 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
     } as const;
 
     const padding = EMAIL_STYLES.padding.image;
+    const blockStyle = getBlockStyleCSS(style);
 
     if (!data.src) {
         return (
@@ -361,8 +396,16 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
         imageStyle.width = '100%';
     }
 
-    if (data.linkUrl) {
+    // Apply GIF-specific border (to the image itself)
+    if (data.borderWidth && data.borderWidth > 0) {
+        imageStyle.border = `${data.borderWidth}px solid ${data.borderColor || "#e5e7eb"}`;
+    } else if (data.linkUrl) {
         imageStyle.border = '0';
+    }
+
+    // Apply border radius to the GIF
+    if (data.borderRadius && data.borderRadius > 0) {
+        imageStyle.borderRadius = `${data.borderRadius}px`;
     }
 
     const imageElement = (
@@ -382,6 +425,7 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
                 paddingBottom: padding.y,
                 paddingLeft: padding.x,
                 paddingRight: padding.x,
+                ...blockStyle,
             }}
         >
             {data.linkUrl ? (
@@ -389,11 +433,14 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
                     href={data.linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.preventDefault()}
                     style={{
                         display: 'block',
                         textDecoration: 'none',
                         border: '0',
+                        cursor: 'pointer',
                     }}
+                    title={`Link: ${data.linkUrl}`}
                 >
                     {imageElement}
                 </a>
@@ -438,6 +485,11 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
     const padding = EMAIL_STYLES.padding.button;
     const blockStyle = getBlockStyleCSS(style);
 
+    // Button-specific border styling
+    const buttonBorder = data.borderWidth && data.borderWidth > 0
+        ? `${data.borderWidth}px solid ${data.borderColor || "#1e40af"}`
+        : undefined;
+
     return (
         <div
             style={{
@@ -457,6 +509,7 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
                     fontSize: EMAIL_STYLES.fonts.sizes.button,
                     backgroundColor: data.backgroundColor || EMAIL_STYLES.colors.buttonDefault,
                     color: data.textColor || EMAIL_STYLES.colors.buttonText,
+                    border: buttonBorder,
                 }}
             >
                 {data.text || "Button"}
@@ -468,6 +521,11 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
 function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle }) {
     const padding = EMAIL_STYLES.padding.footer;
     const blockStyle = getBlockStyleCSS(style);
+
+    // Text styling with defaults
+    const fontFamily = data.fontFamily || "Arial, Helvetica, sans-serif";
+    const fontWeight = data.fontWeight || "normal";
+    const fontSize = data.fontSize || 12;
 
     // Footer Image Component
     const FooterImage = data.footerImage?.src ? (
@@ -490,32 +548,98 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
         </div>
     ) : null;
 
-    // Social Icons Component (embedded)
+    // Social Icons Component - Using CDN images with enhanced options
     const SocialIconsSection = data.showSocialIcons && data.socialIcons && data.socialIcons.length > 0 ? (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: data.socialIconSpacing || 8, marginBottom: 12 }}>
             {data.socialIcons
                 .filter(icon => icon.enabled && icon.url)
                 .map((icon, idx) => {
-                    const iconData = socialIcons[icon.platform];
-                    if (!iconData) return null;
+                    // Icon settings
+                    const iconStyle = data.socialIconStyle || "brand";
+                    const iconSize = data.socialIconSize || 32;
+                    const showBackground = data.socialIconShowBackground !== false;
+                    const bgRadius = data.socialIconBackgroundRadius ?? 50;
 
-                    let fill = iconData.color;
-                    if (data.socialIconStyle === "black") fill = iconData.dark;
-                    else if (data.socialIconStyle === "white") fill = "#FFFFFF";
-                    else if (data.socialIconStyle === "brand") fill = iconData.color;
+                    // Get CDN icon URL
+                    const platformFilenames: Record<string, string> = { email: "mail" };
+                    const filename = platformFilenames[icon.platform] || icon.platform;
+                    const iconUrl = `https://mco-cdn.b-cdn.net/mco/icons/${filename}-${iconStyle}.png`;
 
-                    return (
-                        <a
-                            key={`${icon.platform}-${idx}`}
-                            href={icon.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ display: 'block', width: data.socialIconSize || 32, height: data.socialIconSize || 32, border: 0 }}
-                            title={icon.platform}
-                        >
-                            <div dangerouslySetInnerHTML={{ __html: iconData.svg(fill) }} style={{ width: '100%', height: '100%' }} />
-                        </a>
-                    );
+                    // Get brand background color
+                    const bgColors: Record<string, string> = {
+                        facebook: "#1877F2",
+                        twitter: "#000000",
+                        instagram: "#E4405F",
+                        linkedin: "#0A66C2",
+                        youtube: "#FF0000",
+                        tiktok: "#000000",
+                        whatsapp: "#25D366",
+                        website: "#4B5563",
+                        email: "#6366F1",
+                        phone: "#10B981",
+                    };
+                    const bgColor = bgColors[icon.platform] || "#333333";
+                    const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+
+                    if (showBackground) {
+                        return (
+                            <a
+                                key={`${icon.platform}-${idx}`}
+                                href={icon.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: iconSize + 8,
+                                    height: iconSize + 8,
+                                    backgroundColor: bgColor,
+                                    borderRadius: `${bgRadius}%`,
+                                    padding: '4px',
+                                    border: 0,
+                                }}
+                                title={platformLabel}
+                            >
+                                <img
+                                    src={iconUrl}
+                                    alt={platformLabel}
+                                    style={{
+                                        display: 'block',
+                                        width: iconSize,
+                                        height: iconSize,
+                                        border: 0,
+                                    }}
+                                />
+                            </a>
+                        );
+                    } else {
+                        // No background - just the icon
+                        return (
+                            <a
+                                key={`${icon.platform}-${idx}`}
+                                href={icon.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'block',
+                                    border: 0,
+                                }}
+                                title={platformLabel}
+                            >
+                                <img
+                                    src={iconUrl}
+                                    alt={platformLabel}
+                                    style={{
+                                        display: 'block',
+                                        width: iconSize,
+                                        height: iconSize,
+                                        border: 0,
+                                    }}
+                                />
+                            </a>
+                        );
+                    }
                 })}
         </div>
     ) : null;
@@ -530,7 +654,9 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                 backgroundColor: data.backgroundColor || EMAIL_STYLES.colors.footerBg,
                 borderTop: '1px solid #e9ecef',
                 textAlign: 'center',
-                fontSize: EMAIL_STYLES.fonts.sizes.footer,
+                fontFamily: fontFamily,
+                fontWeight: fontWeight as any,
+                fontSize: fontSize,
                 lineHeight: 1.6,
                 color: data.textColor || EMAIL_STYLES.colors.footerText,
                 ...blockStyle,
@@ -562,7 +688,7 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
 
             {/* Copyright */}
             {data.copyrightYear && (
-                <div style={{ fontSize: 11, opacity: 0.7, marginTop: 8 }}>
+                <div style={{ fontSize: Math.max(fontSize - 1, 10), opacity: 0.7, marginTop: 8 }}>
                     © {data.copyrightYear} {data.companyName || "Your Company"}. All rights reserved.
                 </div>
             )}
@@ -697,6 +823,11 @@ const socialIcons: Record<string, { color: string; dark: string; svg: (color: st
         dark: "#333333",
         svg: (fill) => `<svg viewBox="0 0 24 24" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`,
     },
+    whatsapp: {
+        color: "#25D366",
+        dark: "#333333",
+        svg: (fill) => `<svg viewBox="0 0 24 24" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`,
+    },
     website: {
         color: "#4B5563",
         dark: "#333333",
@@ -713,6 +844,38 @@ const socialIcons: Record<string, { color: string; dark: string; svg: (color: st
         svg: (fill) => `<svg viewBox="0 0 24 24" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`,
     },
 };
+
+// CDN base URL for social icons (same as email export)
+const SOCIAL_ICONS_CDN_BASE = "https://mco-cdn.b-cdn.net/mco/icons";
+
+// Social platform brand colors for background
+const socialPlatformColors: Record<string, string> = {
+    facebook: "#1877F2",
+    twitter: "#000000",
+    instagram: "#E4405F",
+    linkedin: "#0A66C2",
+    youtube: "#FF0000",
+    tiktok: "#000000",
+    whatsapp: "#25D366",
+    website: "#4B5563",
+    email: "#6366F1",
+    phone: "#10B981",
+};
+
+// Get CDN URL for a social icon (same logic as email-export.ts)
+function getSocialIconUrl(platform: string, iconStyle: string): string {
+    const platformFilenames: Record<string, string> = {
+        email: "mail",
+    };
+    const filename = platformFilenames[platform] || platform;
+    const styleMap: Record<string, string> = {
+        white: "white",
+        black: "black",
+        brand: "brand",
+    };
+    const styleSuffix = styleMap[iconStyle] || "white";
+    return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png`;
+}
 
 function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: BlockStyle }) {
     const blockStyle = getBlockStyleCSS(style);
@@ -738,23 +901,10 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
         );
     }
 
-    // Get icon color based on per-icon or global style
-    const getIconColor = (icon: SocialIconItem) => {
-        const iconData = socialIcons[icon.platform];
-        if (!iconData) return "#666666";
-
-        const style = icon.iconStyle ?? data.iconStyle ?? "brand";
-        switch (style) {
-            case "black": return iconData.dark;
-            case "white": return "#FFFFFF";
-            case "brand":
-            default: return iconData.color;
-        }
-    };
-
     // Global defaults
     const globalShowBg = data.showBackground !== false;
     const globalBgRadius = data.backgroundRadius ?? 50;
+    const globalIconStyle = data.iconStyle ?? "white"; // Default to white for CDN icons
 
     return (
         <div
@@ -767,14 +917,15 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
             }}
         >
             {enabledIcons.map((icon, index) => {
-                const iconData = socialIcons[icon.platform];
-                if (!iconData) return null;
-
                 // Per-icon settings with fallback to global
                 const iconSize = icon.iconSize ?? data.iconSize ?? 32;
+                const iconStyle = icon.iconStyle ?? globalIconStyle;
                 const showBg = icon.showBackground ?? globalShowBg;
-                const bgColor = icon.backgroundColor ?? data.backgroundColor ?? iconData.color;
-                const fill = getIconColor(icon);
+                const bgColor = icon.backgroundColor ?? data.backgroundColor ?? socialPlatformColors[icon.platform] ?? "#333333";
+
+                // Get CDN icon URL
+                const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
+                const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
 
                 // Background circle style
                 const bgStyle = showBg ? {
@@ -799,14 +950,17 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
                             border: "0",
                             ...bgStyle,
                         }}
-                        title={icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1)}
+                        title={platformLabel}
                     >
-                        <div
+                        <img
+                            src={iconUrl}
+                            alt={platformLabel}
                             style={{
+                                display: "block",
                                 width: iconSize,
                                 height: iconSize,
+                                border: 0,
                             }}
-                            dangerouslySetInnerHTML={{ __html: iconData.svg(fill) }}
                         />
                     </a>
                 );
@@ -819,7 +973,8 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
 function ContainerRenderer({ data, style }: { data: ContainerData; style?: BlockStyle }) {
     const alignment = data.alignment || "center";
     const maxWidth = data.maxWidth || 600;
-    const backgroundColor = data.backgroundColor || "#ffffff";
+    const layoutDirection = data.layoutDirection || "column";
+    const backgroundColor = data.transparentBackground ? "transparent" : (data.backgroundColor || "#ffffff");
     const paddingTop = data.paddingTop ?? 20;
     const paddingRight = data.paddingRight ?? 20;
     const paddingBottom = data.paddingBottom ?? 20;
@@ -852,8 +1007,16 @@ function ContainerRenderer({ data, style }: { data: ContainerData; style?: Block
                     textAlign: "center",
                 }}
             >
-                <div style={{ color: "#9ca3af", fontSize: "12px" }}>
+                <div style={{ color: "#9ca3af", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                     📦 Container ({maxWidth}px)
+                    <span style={{ fontSize: "10px", padding: "2px 6px", background: "#e5e7eb", borderRadius: "4px" }}>
+                        {layoutDirection === "row" ? "→ Row" : "↓ Column"}
+                    </span>
+                    {data.transparentBackground && (
+                        <span style={{ fontSize: "10px", padding: "2px 6px", background: "#dbeafe", color: "#2563eb", borderRadius: "4px" }}>
+                            Transparent
+                        </span>
+                    )}
                 </div>
                 <div style={{ color: "#6b7280", fontSize: "11px", marginTop: "4px" }}>
                     {data.blocks?.length || 0} nested block(s)

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,11 +56,16 @@ export function LoginForm({ sessionExpired }: LoginFormProps) {
             <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-5xl font-bold mb-2">
-                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            ZMAIL
-                        </span>
-                    </h1>
+                    <div className="flex justify-center mb-4">
+                        <Image
+                            src="/mainlogo.png"
+                            alt="Logo"
+                            width={180}
+                            height={60}
+                            className="h-16 w-auto object-contain"
+                            priority
+                        />
+                    </div>
                     <p className="text-gray-600">Email Campaign Builder</p>
                 </div>
 
@@ -173,7 +179,7 @@ export function LoginForm({ sessionExpired }: LoginFormProps) {
 
                 {/* Footer */}
                 <p className="text-center text-sm text-gray-500 mt-6">
-                    ZMAIL © 2026 • Email Campaign Builder
+                    Z-EMAIL © 2026 • Email Campaign Builder
                 </p>
             </div>
         </div>

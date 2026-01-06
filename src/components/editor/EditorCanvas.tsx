@@ -19,6 +19,8 @@ interface EditorCanvasProps {
     onDeleteContainerBlock?: (containerId: string, blockId: string) => void;
     // Background styling
     contentBackground?: string;
+    // Preview mode for responsive layout
+    previewMode?: "desktop" | "mobile";
 }
 
 export function EditorCanvas({
@@ -33,6 +35,7 @@ export function EditorCanvas({
     onUpdateContainerBlock,
     onDeleteContainerBlock,
     contentBackground = "#ffffff",
+    previewMode = "desktop",
 }: EditorCanvasProps) {
     const { setNodeRef } = useDroppable({
         id: "canvas",
@@ -94,6 +97,7 @@ export function EditorCanvas({
                         onUpdateContainerBlock={onUpdateContainerBlock}
                         onDeleteContainerBlock={onDeleteContainerBlock}
                         onSelectContainerBlock={onSelectBlock}
+                        previewMode={previewMode}
                     />
                 ))}
             </div>

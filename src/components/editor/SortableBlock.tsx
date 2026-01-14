@@ -370,12 +370,14 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
     }
 
     // Determine image styling based on size option
+    // Note: For "original" size with percentage width, the percentage is applied to the wrapper, not the image
     let imageStyle: React.CSSProperties = { display: 'block', maxWidth: '100%', height: 'auto' };
 
     if (data.size === "fill" || data.size === "scale" || !data.size) {
         imageStyle.width = '100%';
-    } else if (data.width && data.width !== "auto") {
-        imageStyle.width = `${data.width}%`;
+    } else if (data.size === "original" && data.width && data.width !== "auto") {
+        // For "original" with percentage, image fills its wrapper (wrapper has the percentage width)
+        imageStyle.width = '100%';
     }
 
     // Apply image-specific border (to the image itself)
@@ -399,6 +401,15 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
         />
     );
 
+    // Calculate wrapper width for proper flex alignment
+    let wrapperWidth: string | undefined;
+    if (data.size === "original" && data.width && data.width !== "auto") {
+        wrapperWidth = `${data.width}%`;
+    }
+
+    // Common wrapper styles for both linked and non-linked images
+    const wrapperStyle: React.CSSProperties = wrapperWidth ? { width: wrapperWidth } : {};
+
     return (
         <div
             style={{
@@ -419,17 +430,22 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
                     rel="noopener noreferrer"
                     onClick={(e) => e.preventDefault()}
                     style={{
-                        display: 'block',
+                        display: 'inline-block',
                         textDecoration: 'none',
                         border: '0',
                         cursor: 'pointer',
+                        ...wrapperStyle,
                     }}
                     title={`Link: ${data.linkUrl}`}
                 >
                     {imageElement}
                 </a>
             ) : (
-                imageElement
+                wrapperWidth ? (
+                    <div style={wrapperStyle}>
+                        {imageElement}
+                    </div>
+                ) : imageElement
             )}
         </div>
     );
@@ -468,13 +484,8 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
         );
     }
 
-    let imageStyle: React.CSSProperties = { display: 'block', maxWidth: '100%', height: 'auto' };
-
-    if (data.width && data.width !== "auto") {
-        imageStyle.width = `${data.width}%`;
-    } else {
-        imageStyle.width = '100%';
-    }
+    // GIF width handling - percentage applied to wrapper for proper alignment
+    let imageStyle: React.CSSProperties = { display: 'block', maxWidth: '100%', height: 'auto', width: '100%' };
 
     // Apply GIF-specific border (to the image itself)
     if (data.borderWidth && data.borderWidth > 0) {
@@ -496,6 +507,15 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
         />
     );
 
+    // Calculate wrapper width for proper flex alignment
+    let wrapperWidth: string | undefined;
+    if (data.width && data.width !== "auto") {
+        wrapperWidth = `${data.width}%`;
+    }
+
+    // Common wrapper styles for both linked and non-linked gifs
+    const wrapperStyle: React.CSSProperties = wrapperWidth ? { width: wrapperWidth } : {};
+
     return (
         <div
             style={{
@@ -516,17 +536,22 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
                     rel="noopener noreferrer"
                     onClick={(e) => e.preventDefault()}
                     style={{
-                        display: 'block',
+                        display: 'inline-block',
                         textDecoration: 'none',
                         border: '0',
                         cursor: 'pointer',
+                        ...wrapperStyle,
                     }}
                     title={`Link: ${data.linkUrl}`}
                 >
                     {imageElement}
                 </a>
             ) : (
-                imageElement
+                wrapperWidth ? (
+                    <div style={wrapperStyle}>
+                        {imageElement}
+                    </div>
+                ) : imageElement
             )}
         </div>
     );

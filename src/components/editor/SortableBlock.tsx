@@ -11,6 +11,7 @@ import { ContainerEditor } from "./ContainerEditor";
 interface SortableBlockProps {
     block: EmailBlock;
     isSelected: boolean;
+    isDragging?: boolean; // External drag state from parent
     onSelect: () => void;
     onDelete?: () => void;
     onUpdate?: (newData: any) => void;  // Added for updating block data
@@ -28,11 +29,45 @@ interface SortableBlockProps {
 
 import { motion, AnimatePresence } from "framer-motion";
 
+// Helper function to get effective padding that respects user-configured values
+// When user sets padding (including 0), use those values. Otherwise, use EMAIL_STYLES defaults.
+function getEffectivePadding(
+    defaultPadding: { x: number; y: number } | number,
+    style?: BlockStyle
+): { top: number; right: number; bottom: number; left: number } {
+    // Check if user has explicitly configured padding in block.style
+    const hasUserPadding = style && (
+        style.padding !== undefined ||
+        style.paddingTop !== undefined ||
+        style.paddingRight !== undefined ||
+        style.paddingBottom !== undefined ||
+        style.paddingLeft !== undefined
+    );
+
+    if (hasUserPadding) {
+        // Use user-configured values (allows 0)
+        const uniform = style!.padding ?? 0;
+        return {
+            top: style!.paddingTop ?? uniform,
+            right: style!.paddingRight ?? uniform,
+            bottom: style!.paddingBottom ?? uniform,
+            left: style!.paddingLeft ?? uniform,
+        };
+    }
+
+    // Fall back to EMAIL_STYLES defaults
+    if (typeof defaultPadding === 'number') {
+        return { top: defaultPadding, right: defaultPadding, bottom: defaultPadding, left: defaultPadding };
+    }
+    return { top: defaultPadding.y, right: defaultPadding.x, bottom: defaultPadding.y, left: defaultPadding.x };
+}
+
 // ... imports remain same ...
 
 export function SortableBlock({
     block,
     isSelected,
+    isDragging: isDraggingProp,
     onSelect,
     onDelete,
     onUpdate,
@@ -51,13 +86,16 @@ export function SortableBlock({
         setNodeRef,
         transform,
         transition,
-        isDragging,
+        isDragging: isDraggingInternal,
     } = useSortable({ id: block.id });
 
-    // Dnd-kit handles transform for sorting
-    const style = {
+    // Use external prop if provided, otherwise use internal state
+    const isDragging = isDraggingProp ?? isDraggingInternal;
+
+    // Enhanced transform styles for smooth animations
+    const dndStyle = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
     };
 
     const renderBlockContent = () => {
@@ -92,6 +130,10 @@ export function SortableBlock({
                             onUpdateColumnBlock={onUpdateColumnBlock}
                             onDeleteColumnBlock={onDeleteColumnBlock}
                             onSelectBlock={onSelectColumnBlock}
+                            // Pass container handlers for nested containers
+                            onUpdateContainerBlock={onUpdateContainerBlock}
+                            onDeleteContainerBlock={onDeleteContainerBlock}
+                            onSelectContainerBlock={onSelectContainerBlock}
                         />
                     );
                 }
@@ -124,16 +166,40 @@ export function SortableBlock({
         <motion.div
             layout
             ref={setNodeRef}
-            style={style}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{
-                opacity: 1,
-                scale: isDragging ? 1.02 : 1,
-                zIndex: isDragging ? 999 : (isSelected ? 10 : 0)
+            style={{
+                ...dndStyle,
+                // "Lift" state: reduced opacity when being dragged
+                opacity: isDragging ? 0.5 : 1,
             }}
-            whileHover={canEdit ? { scale: 1.002 } : undefined}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className={`editor-block group relative ${isSelected ? "editor-block-selected" : "editor-block-default"}`}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{
+                opacity: isDragging ? 0.5 : 1,
+                scale: isDragging ? 1.02 : 1,
+                y: 0,
+                zIndex: isDragging ? 999 : (isSelected ? 10 : 0),
+                // Shadow only during drag lift state or when selected - NO default shadow
+                boxShadow: isDragging
+                    ? '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(99, 102, 241, 0.5)'
+                    : isSelected
+                        ? '0 0 0 2px rgba(99, 102, 241, 0.5)'
+                        : 'none',
+            }}
+            whileHover={canEdit && !isDragging ? {
+                scale: 1.002,
+                // Minimal hover effect - no shadow
+            } : undefined}
+            transition={{
+                type: "spring",
+                stiffness: 500,
+                damping: 35,
+                // Faster layout transitions for smooth displacement
+                layout: {
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 35,
+                }
+            }}
+            className={`editor-block group relative ${isSelected ? "editor-block-selected" : "editor-block-default"} ${isDragging ? "cursor-grabbing" : ""}`}
             onClick={(e) => {
                 e.stopPropagation();
                 onSelect();
@@ -141,47 +207,60 @@ export function SortableBlock({
         >
             {canEdit && (
                 <>
+                    {/* Selection/Drag indicator border */}
                     {(isSelected || isDragging) && (
-                        <div className="absolute inset-0 pointer-events-none border-2 border-indigo-500 rounded-lg z-20" />
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute inset-0 pointer-events-none border-2 border-indigo-500 rounded-lg z-20"
+                        />
                     )}
 
-                    {/* Drag Handle */}
-                    <div
+                    {/* Enhanced Drag Handle with grab cursor */}
+                    <motion.div
                         {...attributes}
                         {...listeners}
-                        className="absolute left-3 top-3 w-8 h-8 cursor-move opacity-0 group-hover:opacity-100 transition-all duration-200 
-                                 bg-gray-800 text-white rounded-md flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 z-50"
+                        className="absolute left-3 top-3 w-8 h-8 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-all duration-200 
+                                 bg-gray-800 text-white rounded-md flex items-center justify-center shadow-lg z-50"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
                     >
-                        <span className="text-white font-bold leading-none rotate-90 tracking-widest text-xs">•••</span>
-                    </div>
+                        {/* 6-dot drag handle icon */}
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                            <circle cx="4" cy="3" r="1.5" />
+                            <circle cx="10" cy="3" r="1.5" />
+                            <circle cx="4" cy="7" r="1.5" />
+                            <circle cx="10" cy="7" r="1.5" />
+                            <circle cx="4" cy="11" r="1.5" />
+                            <circle cx="10" cy="11" r="1.5" />
+                        </svg>
+                    </motion.div>
 
                     {/* Delete Button */}
                     {onDelete && (
-                        <div
+                        <motion.div
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onDelete();
                             }}
                             className="absolute right-3 top-3 w-8 h-8 bg-white border border-red-100 text-red-500 rounded-md opacity-0 
                                      group-hover:opacity-100 flex items-center justify-center hover:bg-red-50 hover:border-red-200 
-                                     hover:text-red-600 transition-all duration-200 shadow-sm cursor-pointer hover:scale-110 active:scale-95 z-50"
+                                     hover:text-red-600 transition-all duration-200 shadow-sm cursor-pointer z-50"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             <span className="text-lg font-bold leading-none">×</span>
-                        </div>
+                        </motion.div>
                     )}
                 </>
             )}
 
             <div className={canEdit ? "ml-0 transition-all duration-300" : ""}>
-                {/* Re-using renderBlockContent logic here conceptually, assuming it calls the function defined outside or above in real code, 
-                     but since I am replacing the component, I need to keep the renderBlockContent function available or inline it. 
-                     Wait, the previous code had renderBlockContent inside the component. I should keep it there. 
-                 */}
                 {renderBlockContent()}
             </div>
 
             {/* Visual Feedback Overlay for Hover */}
-            {canEdit && (
+            {canEdit && !isDragging && (
                 <div className="absolute inset-0 border-2 border-dashed border-transparent group-hover:border-indigo-200 rounded-lg transition-colors pointer-events-none" />
             )}
         </motion.div>
@@ -266,7 +345,7 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
         right: "flex-end",
     } as const;
 
-    const padding = EMAIL_STYLES.padding.image;
+    const padding = getEffectivePadding(EMAIL_STYLES.padding.image, style);
     const blockStyle = getBlockStyleCSS(style);
 
     if (!data.src) {
@@ -274,10 +353,10 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
             <div
                 className="flex justify-center"
                 style={{
-                    paddingTop: padding.y,
-                    paddingBottom: padding.y,
-                    paddingLeft: padding.x,
-                    paddingRight: padding.x,
+                    paddingTop: padding.top,
+                    paddingBottom: padding.bottom,
+                    paddingLeft: padding.left,
+                    paddingRight: padding.right,
                 }}
             >
                 <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed rounded">
@@ -325,11 +404,12 @@ function ImageRenderer({ data, style }: { data: ImageData; style?: BlockStyle })
             style={{
                 display: "flex",
                 justifyContent: alignmentMap[data.alignment || "center"],
-                paddingTop: padding.y,
-                paddingBottom: padding.y,
-                paddingLeft: padding.x,
-                paddingRight: padding.x,
-                ...blockStyle,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
+                backgroundColor: blockStyle.backgroundColor,
+                borderRadius: blockStyle.borderRadius,
             }}
         >
             {data.linkUrl ? (
@@ -363,7 +443,7 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
         right: "flex-end",
     } as const;
 
-    const padding = EMAIL_STYLES.padding.image;
+    const padding = getEffectivePadding(EMAIL_STYLES.padding.image, style);
     const blockStyle = getBlockStyleCSS(style);
 
     if (!data.src) {
@@ -371,10 +451,10 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
             <div
                 className="flex justify-center"
                 style={{
-                    paddingTop: padding.y,
-                    paddingBottom: padding.y,
-                    paddingLeft: padding.x,
-                    paddingRight: padding.x,
+                    paddingTop: padding.top,
+                    paddingBottom: padding.bottom,
+                    paddingLeft: padding.left,
+                    paddingRight: padding.right,
                 }}
             >
                 <div className="w-full h-48 bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-gray-400 border-2 border-dashed border-pink-200 rounded">
@@ -421,11 +501,12 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
             style={{
                 display: "flex",
                 justifyContent: alignmentMap[data.alignment || "center"],
-                paddingTop: padding.y,
-                paddingBottom: padding.y,
-                paddingLeft: padding.x,
-                paddingRight: padding.x,
-                ...blockStyle,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
+                backgroundColor: blockStyle.backgroundColor,
+                borderRadius: blockStyle.borderRadius,
             }}
         >
             {data.linkUrl ? (
@@ -456,24 +537,26 @@ function GifRenderer({ data, style }: { data: GifData; style?: BlockStyle }) {
 // Copy this function to replace lines 262-286 in SortableBlock.tsx
 
 function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: BlockStyle }) {
-    const padding = EMAIL_STYLES.padding.text;
+    const padding = getEffectivePadding(EMAIL_STYLES.padding.text, style);
     const blockStyle = getBlockStyleCSS(style);
+    // textColor sets the default color - TipTap inline styles will override this where applied
+    const textColor = data.textColor || EMAIL_STYLES.colors.text;
 
     return (
         <div
             style={{
-                paddingTop: padding.y,
-                paddingBottom: padding.y,
-                paddingLeft: padding.x,
-                paddingRight: padding.x,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
                 textAlign: data.alignment || "left",
-                color: data.textColor || EMAIL_STYLES.colors.text,
-                backgroundColor: data.backgroundColor || "transparent",
+                color: textColor, // Default color - inline styles take precedence
+                backgroundColor: blockStyle.backgroundColor || data.backgroundColor || "transparent",
                 fontFamily: data.fontFamily || EMAIL_STYLES.fonts.default,
                 fontWeight: data.fontWeight || "normal",
                 fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
                 lineHeight: EMAIL_STYLES.fonts.lineHeight,
-                ...blockStyle,
+                borderRadius: blockStyle.borderRadius,
             }}
             dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }}
         />
@@ -482,7 +565,7 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
 
 
 function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle }) {
-    const padding = EMAIL_STYLES.padding.button;
+    const padding = getEffectivePadding(EMAIL_STYLES.padding.button, style);
     const blockStyle = getBlockStyleCSS(style);
 
     // Button-specific border styling
@@ -493,11 +576,13 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
     return (
         <div
             style={{
-                paddingTop: padding.y,
-                paddingBottom: padding.y,
-                paddingLeft: padding.x,
-                paddingRight: padding.x,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
                 textAlign: 'center',
+                backgroundColor: blockStyle.backgroundColor,
+                borderRadius: blockStyle.borderRadius,
             }}
         >
             <span
@@ -701,7 +786,10 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
 
 function SpacerRenderer({ data, style }: { data: SpacerData; style?: BlockStyle }) {
     const height = data.height || EMAIL_STYLES.spacer.default;
-    const blockStyle = getBlockStyleCSS(style);
+
+    // Spacer is transparent by default - only apply background if explicitly set
+    // No border-radius for spacers
+    const backgroundColor = style?.backgroundColor || "transparent";
 
     return (
         <div
@@ -709,13 +797,10 @@ function SpacerRenderer({ data, style }: { data: SpacerData; style?: BlockStyle 
                 height: height,
                 lineHeight: `${height}px`,
                 fontSize: 0,
-                backgroundColor: '#f9fafb',
-                ...blockStyle,
+                backgroundColor: backgroundColor,
+                // No border-radius for spacer - it's just empty space
             }}
-            className="flex items-center justify-center"
-        >
-            <span className="text-xs text-gray-400">{height}px</span>
-        </div>
+        />
     );
 }
 
@@ -724,16 +809,20 @@ function DividerRenderer({ data, style }: { data: DividerData; style?: BlockStyl
     const thickness = data.thickness || 1;
     const dividerStyle = data.style || "solid";  // Renamed from 'style' to avoid conflict
     const width = data.width || 100;
+    const padding = getEffectivePadding(20, style);  // Default 20px padding for divider
+    const blockStyle = getBlockStyleCSS(style);
 
     return (
         <div
             style={{
-                paddingTop: 20,
-                paddingBottom: 20,
-                paddingLeft: 20,
-                paddingRight: 20,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
                 display: 'flex',
                 justifyContent: 'center',
+                backgroundColor: blockStyle.backgroundColor,
+                borderRadius: blockStyle.borderRadius,
             }}
         >
             <div
@@ -750,12 +839,16 @@ function ColumnsRenderer({ data, style }: { data: ColumnsData; style?: BlockStyl
     const columnCount = data.columnCount || 2;
     const gap = data.gap || EMAIL_STYLES.columns.gap;
 
-    // Handle both number and object padding for backward compatibility
-    const padding = typeof data.padding === 'number'
-        ? data.padding
-        : EMAIL_STYLES.padding.columns;
+    // Handle both number and object padding - default to 0
+    let paddingValue = 0;
+    if (typeof data.padding === 'number') {
+        paddingValue = data.padding;
+    } else if (data.padding && typeof data.padding === 'object') {
+        // If it's an object, use average or just use the values directly
+        paddingValue = 0; // Object padding handled separately if needed
+    }
+    // Otherwise default to 0 for true WYSIWYG
 
-    const paddingValue = typeof padding === 'number' ? padding : 20;
     const blockStyle = getBlockStyleCSS(style);
 
     // Calculate widths based on column count
@@ -879,6 +972,7 @@ function getSocialIconUrl(platform: string, iconStyle: string): string {
 
 function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: BlockStyle }) {
     const blockStyle = getBlockStyleCSS(style);
+    const padding = getEffectivePadding({ x: 20, y: 16 }, style);  // Default: 16px top/bottom, 20px left/right
     const alignmentMap = {
         left: "flex-start",
         center: "center",
@@ -891,7 +985,14 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
         return (
             <div
                 className="flex items-center justify-center py-6"
-                style={blockStyle}
+                style={{
+                    paddingTop: padding.top,
+                    paddingBottom: padding.bottom,
+                    paddingLeft: padding.left,
+                    paddingRight: padding.right,
+                    backgroundColor: blockStyle.backgroundColor,
+                    borderRadius: blockStyle.borderRadius,
+                }}
             >
                 <div className="text-center text-gray-400">
                     <div className="text-2xl mb-1">🔗</div>
@@ -912,8 +1013,12 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
                 display: "flex",
                 justifyContent: alignmentMap[data.alignment || "center"],
                 gap: `${data.iconSpacing || 12}px`,
-                padding: "16px 20px",
-                ...blockStyle,
+                paddingTop: padding.top,
+                paddingBottom: padding.bottom,
+                paddingLeft: padding.left,
+                paddingRight: padding.right,
+                backgroundColor: blockStyle.backgroundColor,
+                borderRadius: blockStyle.borderRadius,
             }}
         >
             {enabledIcons.map((icon, index) => {
@@ -1008,7 +1113,7 @@ function ContainerRenderer({ data, style }: { data: ContainerData; style?: Block
                 }}
             >
                 <div style={{ color: "#9ca3af", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                    📦 Container ({maxWidth}px)
+                    📦 Container
                     <span style={{ fontSize: "10px", padding: "2px 6px", background: "#e5e7eb", borderRadius: "4px" }}>
                         {layoutDirection === "row" ? "→ Row" : "↓ Column"}
                     </span>

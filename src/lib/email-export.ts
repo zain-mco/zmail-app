@@ -624,9 +624,10 @@ function renderColumns(data: ColumnsData, style?: BlockStyle): string {
   const bgColor = data.backgroundColor || "#ffffff";
 
   // Handle both number and object padding for backward compatibility
+  // Default to 0 - users control spacing for true WYSIWYG
   const padding = typeof data.padding === 'number'
     ? { top: data.padding, right: data.padding, bottom: data.padding, left: data.padding }
-    : (data.padding || { top: 20, right: 20, bottom: 20, left: 20 });
+    : (data.padding || { top: 0, right: 0, bottom: 0, left: 0 });
 
   const alignItems = data.alignItems || "start";
 
@@ -671,9 +672,10 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
   const blocks = data.blocks || [];
   const alignment = data.alignment || "center";
   const maxWidth = data.maxWidth || 600;
+  const layoutDirection = data.layoutDirection || "column";
 
   // === Container-specific styling (from ContainerData) ===
-  const bgColor = data.backgroundColor || "";
+  const bgColor = data.transparentBackground ? "" : (data.backgroundColor || "");
   const paddingTop = data.paddingTop ?? 20;
   const paddingRight = data.paddingRight ?? 20;
   const paddingBottom = data.paddingBottom ?? 20;
@@ -684,11 +686,6 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
   const borderColor = data.borderColor || "#e5e7eb";
   const borderStyle = data.borderStyle || "solid";
   const borderRadius = data.borderRadius || 0;
-
-  // Render nested blocks (each becomes a row in the container table)
-  const nestedContent = blocks.length > 0
-    ? blocks.map(block => renderBlock(block)).join("\n")
-    : `                    <tr><td style="padding: 20px; text-align: center; color: #9ca3af; font-size: 14px;">Container content goes here</td></tr>`;
 
   // === Build inline styles for td (email-safe) ===
   const tdStyles: string[] = [];
@@ -709,6 +706,45 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
   // === bgcolor attribute for Outlook + inline CSS for all ===
   const bgcolorAttr = bgColor ? ` bgcolor="${escapeHtml(bgColor)}"` : "";
   const bgStyleAttr = bgColor ? `background-color: ${bgColor};` : "";
+
+  // === Render content based on layout direction ===
+  // Map vertical alignment from Container data to valign attribute
+  const verticalAlignment = data.verticalAlignment || "start";
+  const valignMap: Record<string, string> = { start: "top", center: "middle", end: "bottom" };
+  const valign = valignMap[verticalAlignment] || "top";
+
+  let nestedContent: string;
+
+  if (layoutDirection === "row" && blocks.length > 0) {
+    // ROW LAYOUT: Render blocks side-by-side using table cells
+    const gap = 20; // Gap between columns
+    const totalGap = gap * (blocks.length - 1);
+    const availableWidth = maxWidth - paddingLeft - paddingRight - totalGap;
+    const columnWidth = Math.floor(availableWidth / blocks.length);
+
+    const columnCells = blocks.map((block, index) => {
+      const isLast = index === blocks.length - 1;
+      const rightPadding = isLast ? 0 : gap;
+
+      // Render the nested block content
+      const blockContent = renderNestedBlock(block);
+
+      return `                <td width="${columnWidth}" valign="${valign}" style="padding-right: ${rightPadding}px; vertical-align: ${valign};">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+${blockContent || `                    <tr><td>&nbsp;</td></tr>`}
+                  </table>
+                </td>`;
+    }).join("\n");
+
+    nestedContent = `                    <tr>
+${columnCells}
+                    </tr>`;
+  } else {
+    // COLUMN LAYOUT (default): Render blocks vertically (each becomes a row)
+    nestedContent = blocks.length > 0
+      ? blocks.map(block => renderBlock(block)).join("\n")
+      : `                    <tr><td style="padding: 20px; text-align: center; color: #9ca3af; font-size: 14px;">Container content goes here</td></tr>`;
+  }
 
   // === Professional Email Container Structure ===
   // Pattern: Outer wrapper (centering) > MSO conditional table > Inner table (width constrained) > Content td
@@ -747,7 +783,13 @@ function renderNestedBlock(block: EmailBlock): string {
       const data = block.data as ImageData;
       if (!data.src) return "";
       const alignment = data.alignment || "center";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; border: 0;">`;
+      // Build image-specific border styles (including border-radius)
+      let imgBorderStyle = "border: 0;";
+      if (data.borderWidth && data.borderWidth > 0) {
+        imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
+      }
+      const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }
@@ -761,7 +803,13 @@ function renderNestedBlock(block: EmailBlock): string {
       const data = block.data as GifData;
       if (!data.src) return "";
       const alignment = data.alignment || "center";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; border: 0;">`;
+      // Build GIF-specific border styles (including border-radius)
+      let gifBorderStyle = "border: 0;";
+      if (data.borderWidth && data.borderWidth > 0) {
+        gifBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
+      }
+      const gifRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }
@@ -874,6 +922,58 @@ function renderNestedBlock(block: EmailBlock): string {
       return `                    <tr>
                       <td align="${data.alignment || "center"}" style="padding: 8px 0;">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${iconHtml}</tr></table>
+                      </td>
+                    </tr>`;
+    }
+    case "Container": {
+      // Nested Container inside columns - render with full styling
+      const data = block.data as ContainerData;
+      const nestedBlocks = data.blocks || [];
+      const bgColor = data.transparentBackground ? "" : (data.backgroundColor || "");
+      const paddingTop = data.paddingTop ?? 10;
+      const paddingRight = data.paddingRight ?? 10;
+      const paddingBottom = data.paddingBottom ?? 10;
+      const paddingLeft = data.paddingLeft ?? 10;
+      const borderWidth = data.borderWidth || 0;
+      const borderColor = data.borderColor || "#e5e7eb";
+      const borderStyle = data.borderStyle || "solid";
+      const borderRadius = data.borderRadius || 0;
+
+      // Vertical alignment (for content within the container)
+      const verticalAlignment = data.verticalAlignment || "start";
+      const valignMap: Record<string, string> = { start: "top", center: "middle", end: "bottom" };
+      const valign = valignMap[verticalAlignment] || "top";
+
+      // Build styles
+      const styles: string[] = [];
+      styles.push(`padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`);
+      if (bgColor) styles.push(`background-color: ${bgColor}`);
+      if (borderWidth > 0 && borderStyle !== "none") {
+        styles.push(`border: ${borderWidth}px ${borderStyle} ${borderColor}`);
+      }
+      if (borderRadius > 0) styles.push(`border-radius: ${borderRadius}px`);
+      // Add vertical-align for content centering and height:100% to fill parent
+      styles.push(`vertical-align: ${valign}`);
+      styles.push("height: 100%");
+
+      const bgcolorAttr = bgColor ? ` bgcolor="${escapeHtml(bgColor)}"` : "";
+
+      // Render nested blocks within the container
+      const nestedContent = nestedBlocks.map(b => renderNestedBlock(b)).join("\n");
+
+      // Use valign attribute and height:100% for email client compatibility
+      // The outer tr/td fills the parent cell, and the inner table uses height:100% to allow valign to work
+      return `                    <tr style="height: 100%;">
+                      <td${bgcolorAttr} valign="${valign}" style="${styles.join("; ")}">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="height: 100%;">
+                          <tr>
+                            <td valign="${valign}" style="vertical-align: ${valign};">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+${nestedContent || `                                <tr><td>&nbsp;</td></tr>`}
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>`;
     }

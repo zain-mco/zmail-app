@@ -9,11 +9,14 @@ import {
     DragStartEvent,
     closestCenter,
     PointerSensor,
+    TouchSensor,
+    KeyboardSensor,
     useSensor,
     useSensors,
     DragOverlay,
+    MeasuringStrategy,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +25,7 @@ import { EditorCanvas } from "./EditorCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { ExportModal } from "./ExportModal";
 import { ToolbarButton, ToolbarDivider, ToolbarGroup, ToolbarIcons } from "./ToolbarComponents";
+import { DragOverlayContent, DragOverlayBlock } from "./DragOverlayContent";
 import { generateEmailHTML } from "@/lib/email-export";
 import { EmailContent, BlockType, defaultBlockData, EmailBlock, ColumnsData } from "@/lib/block-types";
 
@@ -69,6 +73,8 @@ export function EditorWorkspace({
     const [blocks, setBlocks] = useState<EmailBlock[]>(() => validateBlocks(initialContent.blocks || []));
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeBlockType, setActiveBlockType] = useState<string | null>(null);
+    const [overBlockId, setOverBlockId] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [showExport, setShowExport] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -92,42 +98,63 @@ export function EditorWorkspace({
         setIsMounted(true);
     }, []);
 
-    // Find selected block (including nested blocks in columns and containers)
+    // Find selected block (including nested blocks in columns and containers - recursive)
     const selectedBlock = useMemo(() => {
         if (!selectedBlockId) return null;
 
-        // Check top-level blocks
-        const topLevel = blocks.find((b) => b.id === selectedBlockId);
-        if (topLevel) return topLevel;
+        // Recursive function to find block at any depth
+        const findBlock = (blocks: EmailBlock[]): EmailBlock | null => {
+            for (const block of blocks) {
+                if (block.id === selectedBlockId) return block;
 
-        // Search in columns and containers
-        for (const block of blocks) {
-            if (block.type === "Columns") {
-                const columnsData = block.data as ColumnsData;
-                for (const column of columnsData.columns) {
-                    const nested = column.find((b) => b.id === selectedBlockId);
-                    if (nested) return nested;
+                // Search in Columns
+                if (block.type === "Columns") {
+                    const columnsData = block.data as ColumnsData;
+                    for (const column of columnsData.columns) {
+                        const found = findBlock(column);
+                        if (found) return found;
+                    }
+                }
+
+                // Search in Containers (recursive)
+                if (block.type === "Container") {
+                    const containerData = block.data as any;
+                    if (containerData.blocks?.length > 0) {
+                        const found = findBlock(containerData.blocks);
+                        if (found) return found;
+                    }
                 }
             }
-            // Search in containers
-            if (block.type === "Container") {
-                const containerData = block.data as any;
-                if (containerData.blocks) {
-                    const nested = containerData.blocks.find((b: EmailBlock) => b.id === selectedBlockId);
-                    if (nested) return nested;
-                }
-            }
-        }
-        return null;
+            return null;
+        };
+
+        return findBlock(blocks);
     }, [blocks, selectedBlockId]);
 
+    // Enhanced sensors for smooth DnD with multi-device support
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 5, // Slightly reduced for quicker response
             },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 150,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
         })
     );
+
+    // Measuring configuration for smooth animations
+    const measuringConfig = {
+        droppable: {
+            strategy: MeasuringStrategy.Always,
+        },
+    };
 
     // Generate unique ID for new blocks
     const generateId = useCallback(() => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, []);
@@ -145,74 +172,87 @@ export function EditorWorkspace({
         setSelectedBlockId(newBlock.id);
     }, []);
 
-    // Update block data and style (handles both top-level and nested blocks)
+    // Update block data and style (handles blocks at any nesting depth - recursive)
     const handleUpdateBlock = useCallback((id: string, data: EmailBlock["data"], style?: EmailBlock["style"]) => {
         setBlocks((prev) => {
-            // First check if it's a top-level block
-            const topLevelBlock = prev.find((block) => block.id === id);
-            if (topLevelBlock) {
-                return prev.map((block) =>
-                    block.id === id
-                        ? { ...block, data, ...(style !== undefined && { style }) }
-                        : block
-                );
-            }
-
-            // If not found at top level, search in columns and containers
-            return prev.map((block) => {
-                // Search in Columns
-                if (block.type === "Columns") {
-                    const columnsData = block.data as ColumnsData;
-                    let found = false;
-
-                    const updatedColumns = columnsData.columns.map((column) =>
-                        column.map((nestedBlock) => {
-                            if (nestedBlock.id === id) {
-                                found = true;
-                                return { ...nestedBlock, data, ...(style !== undefined && { style }) };
-                            }
-                            return nestedBlock;
-                        })
-                    );
-
-                    if (found) {
-                        return {
-                            ...block,
-                            data: { ...columnsData, columns: updatedColumns },
-                        };
+            // Recursive function to update block at any depth
+            const updateBlockRecursive = (blocks: EmailBlock[]): { blocks: EmailBlock[]; found: boolean } => {
+                let found = false;
+                const updatedBlocks = blocks.map((block) => {
+                    // Direct match
+                    if (block.id === id) {
+                        found = true;
+                        return { ...block, data, ...(style !== undefined && { style }) };
                     }
-                }
 
-                // Search in Containers
-                if (block.type === "Container") {
-                    const containerData = block.data as any;
-                    if (containerData.blocks) {
-                        let found = false;
-                        const updatedBlocks = containerData.blocks.map((nestedBlock: EmailBlock) => {
-                            if (nestedBlock.id === id) {
-                                found = true;
-                                return { ...nestedBlock, data, ...(style !== undefined && { style }) };
-                            }
-                            return nestedBlock;
+                    // Search in Columns
+                    if (block.type === "Columns") {
+                        const columnsData = block.data as ColumnsData;
+                        let columnFound = false;
+                        const updatedColumns = columnsData.columns.map((column) => {
+                            const result = updateBlockRecursive(column);
+                            if (result.found) columnFound = true;
+                            return result.blocks;
                         });
-
-                        if (found) {
-                            return {
-                                ...block,
-                                data: { ...containerData, blocks: updatedBlocks },
-                            };
+                        if (columnFound) {
+                            found = true;
+                            return { ...block, data: { ...columnsData, columns: updatedColumns } };
                         }
                     }
-                }
 
-                return block;
-            });
+                    // Search in Containers (recursive)
+                    if (block.type === "Container") {
+                        const containerData = block.data as any;
+                        if (containerData.blocks?.length > 0) {
+                            const result = updateBlockRecursive(containerData.blocks);
+                            if (result.found) {
+                                found = true;
+                                return { ...block, data: { ...containerData, blocks: result.blocks } };
+                            }
+                        }
+                    }
+
+                    return block;
+                });
+                return { blocks: updatedBlocks, found };
+            };
+
+            return updateBlockRecursive(prev).blocks;
         });
     }, []);
 
-    // Delete block
+    // Delete block (handles blocks at any nesting depth - recursive)
     const handleDeleteBlock = useCallback((id: string) => {
-        setBlocks((prev) => prev.filter((block) => block.id !== id));
+        setBlocks((prev) => {
+            // Recursive function to delete block at any depth
+            const deleteBlockRecursive = (blocks: EmailBlock[]): EmailBlock[] => {
+                return blocks
+                    .filter((block) => block.id !== id) // Remove if direct match
+                    .map((block) => {
+                        // Search in Columns
+                        if (block.type === "Columns") {
+                            const columnsData = block.data as ColumnsData;
+                            const updatedColumns = columnsData.columns.map((column) =>
+                                deleteBlockRecursive(column)
+                            );
+                            return { ...block, data: { ...columnsData, columns: updatedColumns } };
+                        }
+
+                        // Search in Containers (recursive)
+                        if (block.type === "Container") {
+                            const containerData = block.data as any;
+                            if (containerData.blocks?.length > 0) {
+                                const updatedBlocks = deleteBlockRecursive(containerData.blocks);
+                                return { ...block, data: { ...containerData, blocks: updatedBlocks } };
+                            }
+                        }
+
+                        return block;
+                    });
+            };
+
+            return deleteBlockRecursive(prev);
+        });
         if (selectedBlockId === id) {
             setSelectedBlockId(null);
         }
@@ -259,47 +299,91 @@ export function EditorWorkspace({
         }
     }, [selectedBlockId]);
 
-    // Update block in container
+    // Update block in container (recursive to support nested containers)
     const handleUpdateContainerBlock = useCallback((containerId: string, blockId: string, newData: any) => {
-        setBlocks((prev) =>
-            prev.map((block) => {
-                if (block.id === containerId && block.type === "Container") {
-                    const containerData = block.data as any;
-                    const updatedBlocks = (containerData.blocks || []).map((b: EmailBlock) =>
-                        b.id === blockId ? { ...b, data: newData } : b
-                    );
-                    return { ...block, data: { ...containerData, blocks: updatedBlocks } };
-                }
-                return block;
-            })
-        );
+        setBlocks((prev) => {
+            // Recursive function to update block in nested containers
+            const updateInContainer = (blocks: EmailBlock[]): EmailBlock[] => {
+                return blocks.map((block) => {
+                    if (block.id === containerId && block.type === "Container") {
+                        const containerData = block.data as any;
+                        const updatedBlocks = (containerData.blocks || []).map((b: EmailBlock) =>
+                            b.id === blockId ? { ...b, data: newData } : b
+                        );
+                        return { ...block, data: { ...containerData, blocks: updatedBlocks } };
+                    }
+                    // Recursively search in nested containers
+                    if (block.type === "Container") {
+                        const containerData = block.data as any;
+                        if (containerData.blocks?.length > 0) {
+                            const updatedNestedBlocks = updateInContainer(containerData.blocks);
+                            if (updatedNestedBlocks !== containerData.blocks) {
+                                return { ...block, data: { ...containerData, blocks: updatedNestedBlocks } };
+                            }
+                        }
+                    }
+                    return block;
+                });
+            };
+            return updateInContainer(prev);
+        });
     }, []);
 
-    // Delete block from container
+    // Delete block from container (recursive to support nested containers)
     const handleDeleteContainerBlock = useCallback((containerId: string, blockId: string) => {
-        setBlocks((prev) =>
-            prev.map((block) => {
-                if (block.id === containerId && block.type === "Container") {
-                    const containerData = block.data as any;
-                    const filteredBlocks = (containerData.blocks || []).filter((b: EmailBlock) => b.id !== blockId);
-                    return { ...block, data: { ...containerData, blocks: filteredBlocks } };
-                }
-                return block;
-            })
-        );
+        setBlocks((prev) => {
+            // Recursive function to delete block in nested containers
+            const deleteInContainer = (blocks: EmailBlock[]): EmailBlock[] => {
+                return blocks.map((block) => {
+                    if (block.id === containerId && block.type === "Container") {
+                        const containerData = block.data as any;
+                        const filteredBlocks = (containerData.blocks || []).filter((b: EmailBlock) => b.id !== blockId);
+                        return { ...block, data: { ...containerData, blocks: filteredBlocks } };
+                    }
+                    // Recursively search in nested containers
+                    if (block.type === "Container") {
+                        const containerData = block.data as any;
+                        if (containerData.blocks?.length > 0) {
+                            const updatedNestedBlocks = deleteInContainer(containerData.blocks);
+                            if (updatedNestedBlocks !== containerData.blocks) {
+                                return { ...block, data: { ...containerData, blocks: updatedNestedBlocks } };
+                            }
+                        }
+                    }
+                    return block;
+                });
+            };
+            return deleteInContainer(prev);
+        });
         if (selectedBlockId === blockId) {
             setSelectedBlockId(null);
         }
     }, [selectedBlockId]);
 
-    // Drag handlers
+    // Drag handlers with enhanced tracking
     const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
+        const id = event.active.id as string;
+        setActiveId(id);
+
+        // Track the block type for the drag overlay
+        if (id.startsWith("palette-")) {
+            setActiveBlockType(id.replace("palette-", ""));
+        } else {
+            const block = blocks.find(b => b.id === id);
+            setActiveBlockType(block?.type || null);
+        }
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const { over } = event;
+        setOverBlockId(over?.id as string || null);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveId(null);
+        setActiveBlockType(null);
+        setOverBlockId(null);
 
         if (!over) return;
 
@@ -336,21 +420,35 @@ export function EditorWorkspace({
                 );
                 setSelectedBlockId(newBlock.id);
             } else if (isDroppingIntoContainer) {
-                // Add to container
+                // Add to container (recursive to support nested containers)
                 const { containerId } = overData;
-                setBlocks((prev) =>
-                    prev.map((block) => {
-                        if (block.id === containerId && block.type === "Container") {
-                            const containerData = block.data as any;
-                            const updatedBlocks = [...(containerData.blocks || []), newBlock];
-                            return {
-                                ...block,
-                                data: { ...containerData, blocks: updatedBlocks },
-                            };
-                        }
-                        return block;
-                    })
-                );
+                setBlocks((prev) => {
+                    // Recursive function to add block to nested containers
+                    const addToContainer = (blocks: EmailBlock[]): EmailBlock[] => {
+                        return blocks.map((block) => {
+                            if (block.id === containerId && block.type === "Container") {
+                                const containerData = block.data as any;
+                                const updatedBlocks = [...(containerData.blocks || []), newBlock];
+                                return {
+                                    ...block,
+                                    data: { ...containerData, blocks: updatedBlocks },
+                                };
+                            }
+                            // Recursively search in nested containers
+                            if (block.type === "Container") {
+                                const containerData = block.data as any;
+                                if (containerData.blocks?.length > 0) {
+                                    const updatedNestedBlocks = addToContainer(containerData.blocks);
+                                    if (updatedNestedBlocks !== containerData.blocks) {
+                                        return { ...block, data: { ...containerData, blocks: updatedNestedBlocks } };
+                                    }
+                                }
+                            }
+                            return block;
+                        });
+                    };
+                    return addToContainer(prev);
+                });
                 setSelectedBlockId(newBlock.id);
             } else {
                 // Add to top level
@@ -403,7 +501,7 @@ export function EditorWorkspace({
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex-1 flex flex-col"
+            className="h-screen flex flex-col overflow-hidden"
             suppressHydrationWarning
         >
             {/* Enhanced Toolbar */}
@@ -412,7 +510,7 @@ export function EditorWorkspace({
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="border-b border-gray-200 px-4 py-3 flex items-center justify-between z-20"
+                    className="flex-shrink-0 border-b border-gray-200 px-4 py-3 flex items-center justify-between z-20"
                     style={{
                         background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
                     }}
@@ -581,8 +679,8 @@ export function EditorWorkspace({
                 </motion.div>
             </TooltipProvider>
 
-            {/* Editor Layout */}
-            <div className="flex-1 flex overflow-hidden lg:flex-row flex-col" suppressHydrationWarning>
+            {/* Editor Layout - Fixed height container with internal scroll */}
+            <div className="flex-1 flex overflow-hidden lg:flex-row flex-col min-h-0" suppressHydrationWarning>
                 {!isMounted ? (
                     // Loading skeleton during SSR to prevent hydration mismatch with dnd-kit
                     <div className="flex-1 flex items-center justify-center">
@@ -593,29 +691,31 @@ export function EditorWorkspace({
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
+                        measuring={measuringConfig}
                     >
-                        {/* Left: Blocks Palette */}
+                        {/* Left: Blocks Palette - Fixed sidebar with scrollable content */}
                         {canEdit && (
                             <motion.div
                                 initial={{ x: -20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 30 }}
-                                className="w-full lg:w-72 border-r border-gray-100 overflow-y-auto z-10"
+                                className="hidden lg:flex lg:flex-col lg:w-72 border-r border-gray-100 z-10 flex-shrink-0 h-full"
                                 style={{
                                     background: "linear-gradient(180deg, #fafbfc 0%, #ffffff 100%)",
                                 }}
                             >
-                                {/* Sidebar Header */}
-                                <div className="sticky top-0 z-10 px-5 py-4 bg-white/90 backdrop-blur-sm border-b border-gray-100">
+                                {/* Sidebar Header - Always visible */}
+                                <div className="flex-shrink-0 px-5 py-4 bg-white/95 backdrop-blur-sm border-b border-gray-100">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500"></div>
                                         <h2 className="font-bold text-xs uppercase tracking-wider text-gray-600">Components</h2>
                                     </div>
                                     <p className="text-[10px] text-gray-400 mt-1 ml-4">Drag or click to add</p>
                                 </div>
-                                {/* Block Palette */}
-                                <div className="p-4">
+                                {/* Block Palette - Scrollable area */}
+                                <div className="flex-1 overflow-y-auto p-4">
                                     <BlocksPalette onAddBlock={handleAddBlock} />
                                 </div>
                             </motion.div>
@@ -645,6 +745,8 @@ export function EditorWorkspace({
                                     <EditorCanvas
                                         blocks={blocks}
                                         selectedBlockId={selectedBlockId}
+                                        activeId={activeId}
+                                        overBlockId={overBlockId}
                                         onSelectBlock={setSelectedBlockId}
                                         onDeleteBlock={canEdit ? handleDeleteBlock : undefined}
                                         onUpdateBlock={canEdit ? handleUpdateBlock : undefined}
@@ -660,7 +762,7 @@ export function EditorWorkspace({
                             </motion.div>
                         </div>
 
-                        {/* Right: Properties Panel */}
+                        {/* Right: Properties Panel - Fixed sidebar with scrollable content */}
                         <AnimatePresence mode="wait">
                             {selectedBlock ? (
                                 <motion.div
@@ -669,9 +771,22 @@ export function EditorWorkspace({
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: 20, opacity: 0 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="w-full lg:w-80 bg-white border-l border-gray-200 overflow-y-auto shadow-xl z-20"
+                                    className="hidden lg:flex lg:flex-col lg:w-80 bg-white border-l border-gray-200 shadow-xl z-20 flex-shrink-0 h-full"
                                 >
-                                    <div className="p-6">
+                                    {/* Panel Header - Always visible */}
+                                    <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-100">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                                                <h2 className="font-bold text-xs uppercase tracking-wider text-gray-600">Properties</h2>
+                                            </div>
+                                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
+                                                {selectedBlock.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* Properties Content - Scrollable */}
+                                    <div className="flex-1 overflow-y-auto p-6">
                                         <PropertiesPanel
                                             block={selectedBlock}
                                             onUpdate={(data, style) => selectedBlock && handleUpdateBlock(selectedBlock.id, data, style)}
@@ -685,7 +800,7 @@ export function EditorWorkspace({
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="hidden lg:flex w-80 bg-gray-50 border-l border-gray-200 items-center justify-center p-8 text-center"
+                                    className="hidden lg:flex lg:w-80 bg-gray-50 border-l border-gray-200 items-center justify-center p-8 text-center flex-shrink-0 h-full"
                                 >
                                     <div className="text-gray-400">
                                         <div className="text-4xl mb-2">👈</div>
@@ -695,12 +810,20 @@ export function EditorWorkspace({
                             )}
                         </AnimatePresence>
 
-                        <DragOverlay>
-                            {activeId && activeId.startsWith("palette-") && (
-                                <div className="bg-indigo-600 text-white rounded-lg p-3 shadow-2xl font-bold flex items-center gap-3 scale-105 rotate-3 cursor-grabbing z-50">
-                                    <span>+</span>
-                                    <span>{activeId.replace("palette-", "")}</span>
-                                </div>
+                        {/* Premium Drag Overlay with zero-lag cursor tracking */}
+                        <DragOverlay
+                            dropAnimation={{
+                                duration: 250,
+                                easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+                            }}
+                            style={{ cursor: "grabbing" }}
+                        >
+                            {activeId && activeBlockType && (
+                                activeId.startsWith("palette-") ? (
+                                    <DragOverlayContent blockType={activeBlockType} isPalette />
+                                ) : (
+                                    <DragOverlayBlock blockType={activeBlockType} />
+                                )
                             )}
                         </DragOverlay>
                     </DndContext>

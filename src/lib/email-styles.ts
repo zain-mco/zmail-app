@@ -13,19 +13,20 @@ export const EMAIL_STYLES = {
     containerWidth: 600,
 
     // Padding for different block types (in pixels)
+    // ALL defaults are 0 for true WYSIWYG - users control spacing
     padding: {
         // HeaderImage: full-width, no padding
         headerImage: { x: 0, y: 0 },
-        // Image: slight padding for visual separation
-        image: { x: 20, y: 10 },
-        // TextBlock: standard content padding
-        text: { x: 30, y: 20 },
-        // Button: matches text padding
-        button: { x: 30, y: 20 },
-        // Footer: all-around padding
-        footer: 30,
-        // Columns: default inner padding
-        columns: { top: 20, right: 20, bottom: 20, left: 20 },
+        // Image: no default padding
+        image: { x: 0, y: 0 },
+        // TextBlock: no default padding
+        text: { x: 0, y: 0 },
+        // Button: no default padding
+        button: { x: 0, y: 0 },
+        // Footer: no default padding
+        footer: 0,
+        // Columns: no default inner padding
+        columns: { top: 0, right: 0, bottom: 0, left: 0 },
     },
 
     // Typography

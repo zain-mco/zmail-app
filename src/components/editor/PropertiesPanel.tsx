@@ -527,6 +527,8 @@ function TextBlockProperties({ block, onUpdate }: { block: EmailBlock; onUpdate:
                     >
                         <option value="Arial, Helvetica, sans-serif">Arial</option>
                         <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                        <option value="'Lato', Arial, sans-serif">Lato</option>
+                        <option value="'Roboto', Arial, sans-serif">Roboto</option>
                         <option value="Georgia, serif">Georgia</option>
                         <option value="'Times New Roman', Times, serif">Times New Roman</option>
                         <option value="'Courier New', Courier, monospace">Courier</option>
@@ -769,6 +771,8 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                         >
                             <option value="Arial, Helvetica, sans-serif">Arial</option>
                             <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="'Lato', Arial, sans-serif">Lato</option>
+                            <option value="'Roboto', Arial, sans-serif">Roboto</option>
                             <option value="Georgia, serif">Georgia</option>
                             <option value="'Times New Roman', Times, serif">Times New Roman</option>
                             <option value="Verdana, Geneva, sans-serif">Verdana</option>

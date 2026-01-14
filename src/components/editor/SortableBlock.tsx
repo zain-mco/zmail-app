@@ -542,24 +542,40 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
     // textColor sets the default color - TipTap inline styles will override this where applied
     const textColor = data.textColor || EMAIL_STYLES.colors.text;
 
+    // Generate unique ID for scoped styling
+    const blockId = `text-block-${Math.random().toString(36).substr(2, 9)}`;
+
     return (
-        <div
-            style={{
-                paddingTop: padding.top,
-                paddingBottom: padding.bottom,
-                paddingLeft: padding.left,
-                paddingRight: padding.right,
-                textAlign: data.alignment || "left",
-                color: textColor, // Default color - inline styles take precedence
-                backgroundColor: blockStyle.backgroundColor || data.backgroundColor || "transparent",
-                fontFamily: data.fontFamily || EMAIL_STYLES.fonts.default,
-                fontWeight: data.fontWeight || "normal",
-                fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
-                lineHeight: EMAIL_STYLES.fonts.lineHeight,
-                borderRadius: blockStyle.borderRadius,
-            }}
-            dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }}
-        />
+        <>
+            {/* Add scoped CSS for paragraph spacing and empty line visibility */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    #${blockId} p { margin: 0; min-height: 1em; }
+                    #${blockId} p + p { margin-top: 0.75em; }
+                    #${blockId} p:empty { min-height: 1em; }
+                    #${blockId} p:empty::before { content: "\\00a0"; visibility: hidden; }
+                    #${blockId} br { display: block; content: ""; margin-top: 0.5em; }
+                `
+            }} />
+            <div
+                id={blockId}
+                style={{
+                    paddingTop: padding.top,
+                    paddingBottom: padding.bottom,
+                    paddingLeft: padding.left,
+                    paddingRight: padding.right,
+                    textAlign: data.alignment || "left",
+                    color: textColor, // Default color - inline styles take precedence
+                    backgroundColor: blockStyle.backgroundColor || data.backgroundColor || "transparent",
+                    fontFamily: data.fontFamily || EMAIL_STYLES.fonts.default,
+                    fontWeight: data.fontWeight || "normal",
+                    fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
+                    lineHeight: EMAIL_STYLES.fonts.lineHeight,
+                    borderRadius: blockStyle.borderRadius,
+                }}
+                dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }}
+            />
+        </>
     );
 }
 

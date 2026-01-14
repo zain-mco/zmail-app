@@ -268,18 +268,22 @@ function ImageProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (da
                     <div>
                         <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</Label>
                         <div className="flex gap-2 bg-gray-100/50 p-1 rounded-lg">
-                            {(["left", "center", "right"] as const).map((align) => (
-                                <button
-                                    key={align}
-                                    onClick={() => onUpdate({ ...data, alignment: align })}
-                                    className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium capitalize transition-all duration-200 ${data.alignment === align
-                                        ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
-                                        }`}
-                                >
-                                    {align}
-                                </button>
-                            ))}
+                            {(["left", "center", "right"] as const).map((align) => {
+                                // Default to center if no alignment is explicitly set
+                                const currentAlignment = data.alignment || "center";
+                                return (
+                                    <button
+                                        key={align}
+                                        onClick={() => onUpdate({ ...data, alignment: align })}
+                                        className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium capitalize transition-all duration-200 ${currentAlignment === align
+                                            ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                                            : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {align}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -404,18 +408,22 @@ function GifProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data
                     <div>
                         <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</Label>
                         <div className="flex gap-2 bg-gray-100/50 p-1 rounded-lg">
-                            {(["left", "center", "right"] as const).map((align) => (
-                                <button
-                                    key={align}
-                                    onClick={() => onUpdate({ ...data, alignment: align })}
-                                    className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium capitalize transition-all duration-200 ${data.alignment === align
-                                        ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
-                                        }`}
-                                >
-                                    {align}
-                                </button>
-                            ))}
+                            {(["left", "center", "right"] as const).map((align) => {
+                                // Default to center if no alignment is explicitly set
+                                const currentAlignment = data.alignment || "center";
+                                return (
+                                    <button
+                                        key={align}
+                                        onClick={() => onUpdate({ ...data, alignment: align })}
+                                        className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium capitalize transition-all duration-200 ${currentAlignment === align
+                                            ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
+                                            : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {align}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

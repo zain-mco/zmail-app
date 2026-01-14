@@ -276,8 +276,27 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
   const tdStyle = styleAttr ? `${baseStyle}; ${styleAttr}` : baseStyle;
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
 
-  // Content from TipTap is already HTML - preserve it but add email-safe list styles
+  // Content from TipTap is already HTML - preserve it but add email-safe styles
   let htmlContent = data.content || "";
+
+  // Convert empty paragraphs to visible blank lines (add &nbsp; to prevent collapse)
+  htmlContent = htmlContent.replace(/<p><\/p>/g, '<p>&nbsp;</p>');
+  htmlContent = htmlContent.replace(/<p><br><\/p>/g, '<p>&nbsp;</p>');
+  htmlContent = htmlContent.replace(/<p><br\/><\/p>/g, '<p>&nbsp;</p>');
+  htmlContent = htmlContent.replace(/<p><br \/><\/p>/g, '<p>&nbsp;</p>');
+
+  // Add inline styles to paragraphs for spacing between them (Enter key line breaks)
+  // First paragraph gets no margin, subsequent paragraphs get margin-top for spacing
+  let isFirstParagraph = true;
+  htmlContent = htmlContent.replace(/<p([^>]*)>/g, (match, attrs) => {
+    const marginStyle = isFirstParagraph ? 'margin: 0; padding: 0; min-height: 1em;' : 'margin: 12px 0 0 0; padding: 0; min-height: 1em;';
+    isFirstParagraph = false;
+    // Check if there's already a style attribute
+    if (attrs.includes('style=')) {
+      return match.replace(/style="([^"]*)"/, `style="$1 ${marginStyle}"`);
+    }
+    return `<p${attrs} style="${marginStyle}">`;
+  });
 
   // Add inline styles to lists for email compatibility
   htmlContent = htmlContent
@@ -788,13 +807,22 @@ function renderNestedBlock(block: EmailBlock): string {
       const data = block.data as ImageData;
       if (!data.src) return "";
       const alignment = data.alignment || "center";
+      const size = data.size || "fill";
+
+      // Calculate width based on size setting
+      let widthStyle = "max-width: 100%; width: 100%;"; // Default for fill/scale
+      if (size === "original" && data.width && data.width !== "auto") {
+        // Use percentage width for original size
+        widthStyle = `max-width: 100%; width: ${data.width}%;`;
+      }
+
       // Build image-specific border styles (including border-radius)
       let imgBorderStyle = "border: 0;";
       if (data.borderWidth && data.borderWidth > 0) {
         imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
       }
       const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; ${widthStyle} height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }
@@ -808,13 +836,21 @@ function renderNestedBlock(block: EmailBlock): string {
       const data = block.data as GifData;
       if (!data.src) return "";
       const alignment = data.alignment || "center";
+
+      // Calculate width based on width setting
+      let widthStyle = "max-width: 100%; width: 100%;"; // Default full width
+      if (data.width && data.width !== "auto") {
+        // Use percentage width if set
+        widthStyle = `max-width: 100%; width: ${data.width}%;`;
+      }
+
       // Build GIF-specific border styles (including border-radius)
       let gifBorderStyle = "border: 0;";
       if (data.borderWidth && data.borderWidth > 0) {
         gifBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
       }
       const gifRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; max-width: 100%; height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; ${widthStyle} height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }

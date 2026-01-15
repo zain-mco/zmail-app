@@ -666,8 +666,8 @@ function renderColumns(data: ColumnsData, style?: BlockStyle): string {
     const rightPadding = isLast ? 0 : gap;
     const verticalAlign = alignItems === "center" ? "middle" : (alignItems === "end" ? "bottom" : "top");
 
-    // Render nested blocks within the column
-    const nestedContent = columnBlocks.map(block => renderNestedBlock(block)).join("\n");
+    // Render nested blocks within the column - pass columnWidth for proper pixel sizing
+    const nestedContent = columnBlocks.map(block => renderNestedBlock(block, columnWidth)).join("\n");
 
     return `                <td width="${columnWidth}" valign="${verticalAlign}" style="padding-right: ${rightPadding}px; vertical-align: ${verticalAlign};">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -750,8 +750,8 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
       const isLast = index === blocks.length - 1;
       const rightPadding = isLast ? 0 : gap;
 
-      // Render the nested block content
-      const blockContent = renderNestedBlock(block);
+      // Render the nested block content - pass columnWidth for proper pixel sizing
+      const blockContent = renderNestedBlock(block, columnWidth);
 
       return `                <td width="${columnWidth}" valign="${valign}" style="padding-right: ${rightPadding}px; vertical-align: ${valign};">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -800,7 +800,7 @@ ${nestedContent}
 /**
  * Render blocks nested within columns (without outer tr wrapper)
  */
-function renderNestedBlock(block: EmailBlock): string {
+function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): string {
   switch (block.type) {
     case "HeaderImage":
     case "Image": {
@@ -809,11 +809,15 @@ function renderNestedBlock(block: EmailBlock): string {
       const alignment = data.alignment || "center";
       const size = data.size || "fill";
 
-      // Calculate width based on size setting
-      let widthStyle = "max-width: 100%; width: 100%;"; // Default for fill/scale
+      // Calculate image width in pixels for email client compatibility
+      // Email clients don't reliably support percentage widths on images
+      let imgWidth: number;
       if (size === "original" && data.width && data.width !== "auto") {
-        // Use percentage width for original size
-        widthStyle = `max-width: 100%; width: ${data.width}%;`;
+        // Calculate pixel width based on column width and percentage
+        imgWidth = Math.floor(containerWidth * (Number(data.width) / 100));
+      } else {
+        // For fill/scale, use full container width
+        imgWidth = containerWidth;
       }
 
       // Build image-specific border styles (including border-radius)
@@ -822,7 +826,8 @@ function renderNestedBlock(block: EmailBlock): string {
         imgBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
       }
       const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; ${widthStyle} height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
+      // Use width HTML attribute for maximum email client compatibility
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="${imgWidth}" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }
@@ -837,11 +842,14 @@ function renderNestedBlock(block: EmailBlock): string {
       if (!data.src) return "";
       const alignment = data.alignment || "center";
 
-      // Calculate width based on width setting
-      let widthStyle = "max-width: 100%; width: 100%;"; // Default full width
+      // Calculate GIF width in pixels for email client compatibility
+      let gifWidth: number;
       if (data.width && data.width !== "auto") {
-        // Use percentage width if set
-        widthStyle = `max-width: 100%; width: ${data.width}%;`;
+        // Calculate pixel width based on column width and percentage
+        gifWidth = Math.floor(containerWidth * (Number(data.width) / 100));
+      } else {
+        // Default to full container width
+        gifWidth = containerWidth;
       }
 
       // Build GIF-specific border styles (including border-radius)
@@ -850,7 +858,8 @@ function renderNestedBlock(block: EmailBlock): string {
         gifBorderStyle = `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || "#e5e7eb")};`;
       }
       const gifRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
-      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" style="display: block; ${widthStyle} height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
+      // Use width HTML attribute for maximum email client compatibility
+      let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="${gifWidth}" style="display: block; max-width: 100%; height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
       }
@@ -1000,7 +1009,9 @@ function renderNestedBlock(block: EmailBlock): string {
       const bgcolorAttr = bgColor ? ` bgcolor="${escapeHtml(bgColor)}"` : "";
 
       // Render nested blocks within the container
-      const nestedContent = nestedBlocks.map(b => renderNestedBlock(b)).join("\n");
+      // Calculate inner width accounting for padding (estimate based on Column default ~270px)
+      const innerContainerWidth = containerWidth - paddingLeft - paddingRight;
+      const nestedContent = nestedBlocks.map(b => renderNestedBlock(b, innerContainerWidth > 0 ? innerContainerWidth : containerWidth)).join("\n");
 
       // Use valign attribute and height:100% for email client compatibility
       // The outer tr/td fills the parent cell, and the inner table uses height:100% to allow valign to work

@@ -232,6 +232,47 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
         }
     }
 
+    // Duplicate campaign handler - creates a copy for the current user
+    async function handleDuplicateCampaign(campaign: Campaign) {
+        setIsLoading(true);
+
+        try {
+            // Use clone endpoint with the current user's ID to create a copy for themselves
+            const res = await fetch(`/api/campaigns/${campaign.id}/clone`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: currentUserId,
+                    newTitle: `${campaign.title} (Copy)`,
+                }),
+            });
+
+            if (res.ok) {
+                showToast({
+                    type: "success",
+                    title: "Campaign duplicated",
+                    message: `A copy of "${campaign.title}" has been created.`,
+                });
+                router.refresh();
+            } else {
+                const error = await res.json();
+                showToast({
+                    type: "error",
+                    title: "Failed to duplicate",
+                    message: error.error || "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     // Use template handler - creates a new campaign from template
     async function handleUseTemplate(template: EmailTemplate) {
         setTemplateLoading(template.id);
@@ -464,6 +505,9 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                                                             setIsRenameOpen(true);
                                                         }}>
                                                             <span className="mr-2">✏️</span> Rename
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDuplicateCampaign(campaign)}>
+                                                            <span className="mr-2">📋</span> Duplicate
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => handleDeleteCampaign(campaign)}>

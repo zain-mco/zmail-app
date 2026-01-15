@@ -582,6 +582,87 @@ function TextBlockProperties({ block, onUpdate }: { block: EmailBlock; onUpdate:
                 </div>
             </div>
 
+            {/* Background Image Section */}
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-100/50 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🖼️</span>
+                    <Label className="text-purple-900 font-semibold text-xs">Background Image (Optional)</Label>
+                </div>
+                <p className="text-[10px] text-purple-600/80 -mt-1">
+                    Add a background image for text overlay - full width, centered, no repeat.
+                </p>
+
+                {data.backgroundImage ? (
+                    <div className="space-y-3">
+                        {/* Preview */}
+                        <div className="relative rounded-lg overflow-hidden border border-purple-200">
+                            <img
+                                src={data.backgroundImage}
+                                alt="Background preview"
+                                className="w-full h-24 object-cover"
+                            />
+                            <button
+                                onClick={() => onUpdate({ ...data, backgroundImage: undefined, backgroundMinHeight: undefined })}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                                title="Remove background image"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Min Height Control */}
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-purple-700 flex justify-between">
+                                <span>Min Height</span>
+                                <span className="text-purple-500">{data.backgroundMinHeight || 200}px</span>
+                            </Label>
+                            <input
+                                type="range"
+                                min={100}
+                                max={600}
+                                step={20}
+                                value={data.backgroundMinHeight || 200}
+                                onChange={(e) => onUpdate({ ...data, backgroundMinHeight: parseInt(e.target.value) })}
+                                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                            />
+                            <p className="text-[10px] text-purple-600/70 mt-1">
+                                💡 Set minimum height to ensure background image is visible
+                            </p>
+                        </div>
+
+                        {/* Vertical Text Alignment */}
+                        <div>
+                            <Label className="mb-1.5 block text-xs font-semibold text-purple-700">Text Position</Label>
+                            <div className="grid grid-cols-3 gap-2 bg-purple-100/50 p-1 rounded-lg">
+                                {(["top", "center", "bottom"] as const).map((vAlign) => (
+                                    <button
+                                        key={vAlign}
+                                        onClick={() => onUpdate({ ...data, backgroundVerticalAlign: vAlign })}
+                                        className={`py-1.5 px-2 rounded-md text-xs font-medium capitalize transition-all duration-200 ${(data.backgroundVerticalAlign || "center") === vAlign
+                                            ? "bg-white text-purple-600 shadow-sm ring-1 ring-purple-300"
+                                            : "text-purple-600 hover:text-purple-900 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {vAlign}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-purple-600/70 mt-1">
+                                Position text vertically on the background
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <ImageUploader
+                        currentSrc=""
+                        onUpload={(url) => onUpdate({ ...data, backgroundImage: url, backgroundMinHeight: 200 })}
+                        onAltChange={() => { }}
+                        currentAlt=""
+                        imageType="image"
+                    />
+                )}
+            </div>
+
             <div>
                 <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase">Alignment</Label>
                 <div className="flex gap-2 bg-gray-100/50 p-1 rounded-lg">

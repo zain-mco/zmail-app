@@ -570,6 +570,22 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
     // Generate unique ID for scoped styling
     const blockId = `text-block-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Background image styles with vertical alignment
+    const hasBackgroundImage = !!data.backgroundImage;
+    const verticalAlign = data.backgroundVerticalAlign || "center";
+    const alignItemsMap = { top: "flex-start", center: "center", bottom: "flex-end" };
+
+    const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: data.backgroundMinHeight || 200,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: alignItemsMap[verticalAlign],
+    } : {};
+
     return (
         <>
             {/* Add scoped CSS for paragraph spacing and empty line visibility */}
@@ -597,9 +613,12 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
                     fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
                     lineHeight: EMAIL_STYLES.fonts.lineHeight,
                     borderRadius: blockStyle.borderRadius,
+                    ...backgroundStyles,
                 }}
-                dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }}
-            />
+            >
+                {/* Wrap content in a div for proper flex alignment */}
+                <div dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }} />
+            </div>
         </>
     );
 }

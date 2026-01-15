@@ -273,7 +273,16 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
 
   const baseStyle = `padding: ${padding.y}px ${padding.x}px; font-family: ${fontFamily}; font-size: ${fontSize}px; font-weight: ${fontWeight}; line-height: ${EMAIL_STYLES.fonts.lineHeight}; color: ${escapeHtml(color)}; text-align: ${align}`;
   const { bgcolor, styleAttr } = getEmailSafeStyles(style);
-  const tdStyle = styleAttr ? `${baseStyle}; ${styleAttr}` : baseStyle;
+
+  // Add background image styles if present
+  const hasBackgroundImage = !!data.backgroundImage;
+  const minHeight = data.backgroundMinHeight || 200;
+  let bgImageStyle = "";
+  if (hasBackgroundImage && data.backgroundImage) {
+    bgImageStyle = `; background-image: url('${escapeHtml(data.backgroundImage)}'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: ${minHeight}px`;
+  }
+
+  const tdStyle = styleAttr ? `${baseStyle}; ${styleAttr}${bgImageStyle}` : `${baseStyle}${bgImageStyle}`;
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
 
   // Content from TipTap is already HTML - preserve it but add email-safe styles
@@ -303,6 +312,33 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
     .replace(/<ul>/g, '<ul style="margin: 8px 0; padding-left: 24px; list-style-type: disc;">')
     .replace(/<ol>/g, '<ol style="margin: 8px 0; padding-left: 24px; list-style-type: decimal;">')
     .replace(/<li>/g, '<li style="margin: 4px 0; display: list-item;">');
+
+  // If background image is set, wrap with VML for Outlook compatibility
+  if (hasBackgroundImage) {
+    // Vertical alignment mapping for email (valign attribute)
+    const verticalAlign = data.backgroundVerticalAlign || "center";
+    const valignMap: Record<string, string> = { top: "top", center: "middle", bottom: "bottom" };
+    const valign = valignMap[verticalAlign] || "middle";
+
+    return `          <tr>
+            <td${bgcolorAttr} valign="${valign}" style="${tdStyle}">
+              <!--[if gte mso 9]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;min-height:${minHeight}px;">
+                <v:fill type="frame" src="${escapeHtml(data.backgroundImage || '')}" color="${bgcolor || '#ffffff'}" />
+                <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true">
+              <![endif]-->
+              <div style="max-width:600px;margin:0 auto;display:table;width:100%;height:${minHeight}px;">
+                <div style="display:table-cell;vertical-align:${valign};">
+                  ${htmlContent}
+                </div>
+              </div>
+              <!--[if gte mso 9]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
+            </td>
+          </tr>`;
+  }
 
   return `          <tr>
             <td${bgcolorAttr} style="${tdStyle}">
@@ -877,6 +913,18 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
       const color = data.textColor || "#333333";
       const align = data.alignment || "left";
 
+      // Handle background image if present
+      const hasBackgroundImage = !!data.backgroundImage;
+      const minHeight = data.backgroundMinHeight || 200;
+      const verticalAlign = data.backgroundVerticalAlign || "center";
+      const valignMap: Record<string, string> = { top: "top", center: "middle", bottom: "bottom" };
+      const valign = valignMap[verticalAlign] || "middle";
+
+      let bgImageStyle = "";
+      if (hasBackgroundImage && data.backgroundImage) {
+        bgImageStyle = ` background-image: url('${escapeHtml(data.backgroundImage)}'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: ${minHeight}px;`;
+      }
+
       // Preserve HTML content and add list styles
       let htmlContent = data.content || "";
       htmlContent = htmlContent
@@ -884,8 +932,11 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
         .replace(/<ol>/g, '<ol style="margin: 8px 0; padding-left: 24px; list-style-type: decimal;">')
         .replace(/<li>/g, '<li style="margin: 4px 0; display: list-item;">');
 
+      // Use valign attribute for email-safe vertical alignment
+      const valignAttr = hasBackgroundImage ? ` valign="${valign}"` : "";
+
       return `                    <tr>
-                      <td style="padding: 5px 0; font-family: ${fontFamily}; font-size: ${fontSize}px; font-weight: ${fontWeight}; line-height: 1.6; color: ${escapeHtml(color)}; text-align: ${align};">
+                      <td${valignAttr} style="padding: 5px 0; font-family: ${fontFamily}; font-size: ${fontSize}px; font-weight: ${fontWeight}; line-height: 1.6; color: ${escapeHtml(color)}; text-align: ${align};${bgImageStyle}">
                         ${htmlContent}
                       </td>
                     </tr>`;

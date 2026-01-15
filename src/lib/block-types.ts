@@ -93,6 +93,12 @@ export interface TextBlockData {
     fontFamily?: string;
     fontWeight?: string;
     fontSize?: number;
+    /** Background image URL - full width, centered, no repeat */
+    backgroundImage?: string;
+    /** Minimum height when background image is set (to ensure image is visible) */
+    backgroundMinHeight?: number;
+    /** Vertical alignment of text on background image */
+    backgroundVerticalAlign?: "top" | "center" | "bottom";
 }
 
 export interface ButtonData {

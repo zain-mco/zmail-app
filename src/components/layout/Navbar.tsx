@@ -49,14 +49,21 @@ export function Navbar({ user }: NavbarProps) {
                 bc.close();
             }
 
-            // Clear session on server
-            await fetch("/api/auth/logout", { method: "POST" });
-
-            // Clear client-side storage
+            // Clear client-side storage first
             localStorage.clear();
             sessionStorage.clear();
 
-            // Show success toast
+            // Call the logout API to clear server-side cookies
+            await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include", // Ensure cookies are sent/received
+            });
+
+            // Use NextAuth's signOut with redirect disabled, then force navigate
+            // This ensures the session is properly cleared on client side too
+            await signOut({ redirect: false });
+
+            // Show success toast before redirect
             showToast({
                 type: "success",
                 title: "Signed out",
@@ -64,14 +71,22 @@ export function Navbar({ user }: NavbarProps) {
                 duration: 2000,
             });
 
-            // Redirect with reason parameter
-            window.location.href = "/login?reason=logout";
+            // Small delay to ensure cookies are processed, then force full page reload
+            setTimeout(() => {
+                // Use window.location.replace to prevent back button returning to protected page
+                window.location.replace("/login?reason=logout");
+            }, 100);
         } catch (error) {
+            console.error("Logout error:", error);
+            // Even if there's an error, try to redirect to login
             showToast({
                 type: "error",
-                title: "Logout failed",
-                message: "There was an error signing out. Please try again.",
+                title: "Logout issue",
+                message: "There was an issue, but you will be redirected to login.",
             });
+            setTimeout(() => {
+                window.location.replace("/login?reason=logout");
+            }, 1000);
         }
     };
 

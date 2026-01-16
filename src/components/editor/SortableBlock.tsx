@@ -914,15 +914,26 @@ function ColumnsRenderer({ data, style }: { data: ColumnsData; style?: BlockStyl
     // Calculate widths based on column count
     const widths = columnCount === 1 ? ["100%"] : (columnCount === 2 ? ["50%", "50%"] : ["33.33%", "33.33%", "33.33%"]);
 
+    // Background image styles
+    const hasBackgroundImage = !!data.backgroundImage;
+    const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: data.backgroundMinHeight || 200,
+    } : {};
+
     return (
         <div
             style={{
                 display: 'flex',
                 gap: `${gap}px`,
-                backgroundColor: data.backgroundColor || 'transparent',
+                backgroundColor: data.transparentBackground ? 'transparent' : (data.backgroundColor || 'transparent'),
                 padding: `${paddingValue}px`,
                 alignItems: data.alignItems || EMAIL_STYLES.columns.alignItems,
                 ...blockStyle,
+                ...backgroundStyles,
             }}
         >
             {Array.from({ length: columnCount }).map((_, idx) => (
@@ -930,9 +941,9 @@ function ColumnsRenderer({ data, style }: { data: ColumnsData; style?: BlockStyl
                     key={idx}
                     style={{
                         width: widths[idx],
-                        minHeight: 100,
+                        minHeight: hasBackgroundImage ? undefined : 100,
                     }}
-                    className="border border-dashed border-gray-200 rounded p-2 flex flex-col justify-center hover:bg-gray-50 hover:border-indigo-200 transition-colors"
+                    className="border border-dashed border-gray-200 rounded p-2 flex flex-col justify-center hover:bg-gray-50/50 hover:border-indigo-200 transition-colors"
                 >
                     <div className="text-xs text-gray-300 font-medium text-center uppercase tracking-wider mb-2 select-none">Column {idx + 1}</div>
                     <div className="text-center text-xs text-indigo-300 font-mono">

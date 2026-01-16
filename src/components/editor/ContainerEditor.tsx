@@ -86,6 +86,16 @@ export function ContainerEditor({
         ? `${borderWidth}px ${borderStyle} ${borderColor}`
         : isOver ? "2px dashed #8b5cf6" : "none";
 
+    // Background image styles
+    const hasBackgroundImage = !!data.backgroundImage;
+    const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: Math.max(data.backgroundMinHeight || 200, 80),
+    } : {};
+
     return (
         <div
             style={{
@@ -104,7 +114,8 @@ export function ContainerEditor({
                     borderRadius: `${borderRadius}px`,
                     border: borderCss,
                     padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
-                    minHeight: "80px",
+                    minHeight: hasBackgroundImage ? data.backgroundMinHeight || 200 : 80,
+                    ...backgroundStyles,
                 }}
                 animate={{
                     backgroundColor: isOver ? "rgba(139, 92, 246, 0.05)" : backgroundColor,

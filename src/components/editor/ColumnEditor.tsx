@@ -41,12 +41,23 @@ export function ColumnEditor({
     // Determine background color - use transparent if flag is set
     const bgColor = data.transparentBackground ? 'transparent' : (data.backgroundColor || 'transparent');
 
+    // Background image styles
+    const hasBackgroundImage = !!data.backgroundImage;
+    const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: data.backgroundMinHeight || 200,
+    } : {};
+
     return (
         <div
             className="relative"
             style={{
                 backgroundColor: bgColor,
                 padding: `${padding}px`,
+                ...backgroundStyles,
             }}
         >
 

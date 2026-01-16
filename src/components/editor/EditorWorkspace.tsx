@@ -451,8 +451,20 @@ export function EditorWorkspace({
                 });
                 setSelectedBlockId(newBlock.id);
             } else {
-                // Add to top level
-                setBlocks((prev) => [...prev, newBlock]);
+                // Add to top level - insert at the position of the hovered block
+                setBlocks((prev) => {
+                    // If dropping over an existing block, insert before it
+                    if (over.id && over.id !== 'canvas') {
+                        const overIndex = prev.findIndex((b) => b.id === over.id);
+                        if (overIndex !== -1) {
+                            const newBlocks = [...prev];
+                            newBlocks.splice(overIndex, 0, newBlock);
+                            return newBlocks;
+                        }
+                    }
+                    // Default: append at end (e.g., when dropping on empty canvas)
+                    return [...prev, newBlock];
+                });
                 setSelectedBlockId(newBlock.id);
             }
             return;

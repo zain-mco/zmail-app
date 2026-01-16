@@ -115,7 +115,9 @@ export function EditorCanvas({
         );
     }
 
-    // Check if we're dragging (not from palette) and determine drop position
+    // Check if we're dragging (from palette or existing) and determine drop position
+    const isDragging = !!activeId;
+    const isDraggingFromPalette = activeId?.startsWith("palette-");
     const isDraggingExisting = activeId && !activeId.startsWith("palette-");
 
     return (
@@ -140,7 +142,8 @@ export function EditorCanvas({
             >
                 {blocks.map((block, index) => {
                     // Show drop indicator before this block if it's the one being hovered
-                    const showIndicatorBefore = !!(isDraggingExisting &&
+                    // Works for both palette drags (new blocks) and reordering existing blocks
+                    const showIndicatorBefore = !!(isDragging &&
                         overBlockId === block.id &&
                         activeId !== block.id);
 

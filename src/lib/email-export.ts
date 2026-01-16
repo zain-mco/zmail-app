@@ -681,7 +681,7 @@ function renderColumns(data: ColumnsData, style?: BlockStyle): string {
   const columnCount = data.columnCount || 2;
   const columns = data.columns || [];
   const gap = data.gap || 20;
-  const bgColor = data.backgroundColor || "#ffffff";
+  const bgColor = data.transparentBackground ? "" : (data.backgroundColor || "#ffffff");
 
   // Handle both number and object padding for backward compatibility
   // Default to 0 - users control spacing for true WYSIWYG
@@ -712,10 +712,43 @@ ${nestedContent || `                    <tr><td>&nbsp;</td></tr>`}
                 </td>`;
   }).join("\n");
 
-  const baseStyle = `padding: ${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px; background-color: ${escapeHtml(bgColor)}`;
+  // Background image support
+  const hasBackgroundImage = !!data.backgroundImage;
+  const minHeight = data.backgroundMinHeight || 200;
+
+  let baseStyle = `padding: ${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px;`;
+  if (bgColor) {
+    baseStyle += ` background-color: ${escapeHtml(bgColor)};`;
+  }
+  if (hasBackgroundImage && data.backgroundImage) {
+    baseStyle += ` background-image: url('${escapeHtml(data.backgroundImage)}'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: ${minHeight}px;`;
+  }
+
   const tdStyle = mergeStyles(baseStyle, style);
   const { bgcolor } = getEmailSafeStyles(style);
-  const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : ` bgcolor="${escapeHtml(bgColor)}"`;
+  const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : (bgColor ? ` bgcolor="${escapeHtml(bgColor)}"` : "");
+
+  // If background image, use VML for Outlook
+  if (hasBackgroundImage && data.backgroundImage) {
+    return `          <tr>
+            <td${bgcolorAttr} style="${tdStyle}">
+              <!--[if gte mso 9]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;min-height:${minHeight}px;">
+                <v:fill type="frame" src="${escapeHtml(data.backgroundImage)}" color="${bgColor || '#ffffff'}" />
+                <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true">
+              <![endif]-->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+${columnCells}
+                </tr>
+              </table>
+              <!--[if gte mso 9]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
+            </td>
+          </tr>`;
+  }
 
   return `          <tr>
             <td${bgcolorAttr} style="${tdStyle}">
@@ -747,6 +780,10 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
   const borderStyle = data.borderStyle || "solid";
   const borderRadius = data.borderRadius || 0;
 
+  // Background image settings
+  const hasBackgroundImage = !!data.backgroundImage;
+  const minHeight = data.backgroundMinHeight || 200;
+
   // === Build inline styles for td (email-safe) ===
   const tdStyles: string[] = [];
   tdStyles.push(`padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`);
@@ -759,6 +796,15 @@ function renderContainer(data: ContainerData, style?: BlockStyle): string {
   // Border radius (works in Gmail/Apple Mail, ignored by Outlook)
   if (borderRadius > 0) {
     tdStyles.push(`border-radius: ${borderRadius}px`);
+  }
+
+  // Background image styles for non-Outlook clients
+  if (hasBackgroundImage && data.backgroundImage) {
+    tdStyles.push(`background-image: url('${escapeHtml(data.backgroundImage)}')`);
+    tdStyles.push(`background-size: cover`);
+    tdStyles.push(`background-position: center`);
+    tdStyles.push(`background-repeat: no-repeat`);
+    tdStyles.push(`min-height: ${minHeight}px`);
   }
 
   const tdStyle = tdStyles.join("; ");
@@ -807,6 +853,32 @@ ${columnCells}
   }
 
   // === Professional Email Container Structure ===
+  // If background image, use VML for Outlook compatibility
+  if (hasBackgroundImage && data.backgroundImage) {
+    return `          <tr>
+            <td align="${alignment}" style="padding: 0;">
+              <!--[if mso]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:${maxWidth}px;min-height:${minHeight}px;">
+                <v:fill type="frame" src="${escapeHtml(data.backgroundImage)}" color="${bgColor || '#ffffff'}" />
+                <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true">
+              <![endif]-->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${maxWidth}" style="max-width: ${maxWidth}px; margin: 0 auto; ${bgStyleAttr}"${bgcolorAttr}>
+                <tr>
+                  <td style="${tdStyle}">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+${nestedContent}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <!--[if mso]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
+            </td>
+          </tr>`;
+  }
+
   // Pattern: Outer wrapper (centering) > MSO conditional table > Inner table (width constrained) > Content td
   return `          <tr>
             <td align="${alignment}" style="padding: 0;">

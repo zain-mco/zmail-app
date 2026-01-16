@@ -167,6 +167,10 @@ export interface ColumnsData {
     transparentBackground?: boolean;  // If true, no background color applied
     padding?: number; // Simplified to match BlockStyle
     alignItems?: "start" | "center" | "end";
+    /** Background image URL - full width, centered, no repeat */
+    backgroundImage?: string;
+    /** Minimum height when background image is set */
+    backgroundMinHeight?: number;
 }
 
 export interface ContainerData {
@@ -190,6 +194,10 @@ export interface ContainerData {
     borderColor?: string;
     borderStyle?: "solid" | "dashed" | "dotted" | "none";
     borderRadius?: number;  // Note: Limited Outlook support, degrades gracefully
+    /** Background image URL - full width, centered, no repeat */
+    backgroundImage?: string;
+    /** Minimum height when background image is set */
+    backgroundMinHeight?: number;
 }
 
 // Social icon link item with per-icon customization

@@ -48,6 +48,7 @@ const socialPlatformColors: Record<string, string> = {
   website: "#4B5563",
   email: "#6366F1",
   phone: "#10B981",
+  location: "#EA4335",
 };
 
 /**

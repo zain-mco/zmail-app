@@ -202,7 +202,7 @@ export interface ContainerData {
 
 // Social icon link item with per-icon customization
 export interface SocialIconItem {
-    platform: "facebook" | "twitter" | "instagram" | "linkedin" | "youtube" | "tiktok" | "whatsapp" | "website" | "email" | "phone";
+    platform: "facebook" | "twitter" | "instagram" | "linkedin" | "youtube" | "tiktok" | "whatsapp" | "website" | "email" | "phone" | "location";
     url: string;
     enabled: boolean;
     // Per-icon customization (optional - uses global settings if not set)

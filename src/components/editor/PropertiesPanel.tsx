@@ -982,7 +982,7 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                             <div className="space-y-3 pt-2 border-t border-gray-100">
                                 {/* Quick add platforms */}
                                 <div className="flex flex-wrap gap-1.5">
-                                    {["facebook", "twitter", "instagram", "linkedin", "youtube", "email", "phone"].map(platform => {
+                                    {["facebook", "twitter", "instagram", "linkedin", "youtube", "email", "phone", "location"].map(platform => {
                                         const exists = data.socialIcons?.some(i => i.platform === platform);
                                         return (
                                             <button
@@ -1411,6 +1411,7 @@ const socialPlatforms: Record<string, { name: string; icon: string; placeholder:
     website: { name: "Website", icon: "🌐", placeholder: "https://yourwebsite.com" },
     email: { name: "Email", icon: "✉️", placeholder: "mailto:contact@example.com" },
     phone: { name: "Phone", icon: "📞", placeholder: "tel:+971501234567" },
+    location: { name: "Location", icon: "📍", placeholder: "https://maps.google.com/?q=your+address" },
 };
 
 function SocialIconsProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data: any, style?: BlockStyle) => void }) {

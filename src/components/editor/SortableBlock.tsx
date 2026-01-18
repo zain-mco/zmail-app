@@ -672,14 +672,19 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
     const fontWeight = data.fontWeight || "normal";
     const fontSize = data.fontSize || 12;
 
-    // Background image styles
+    // Background image styles with vertical alignment
     const hasBackgroundImage = !!data.backgroundImage;
+    const verticalAlign = data.contentVerticalAlign || "center";
+    const justifyContentMap = { top: "flex-start", center: "center", bottom: "flex-end" };
     const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
         backgroundImage: `url(${data.backgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         minHeight: data.backgroundMinHeight || 200,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: justifyContentMap[verticalAlign],
     } : {};
 
     // Social Icons Component - Using CDN images with enhanced options

@@ -934,8 +934,22 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                     />
                                 </div>
+                                <div>
+                                    <Label className="text-[10px] text-gray-500 mb-1.5 block">Content Vertical Align</Label>
+                                    <div className="grid grid-cols-3 gap-1.5 bg-gray-100/50 p-1 rounded-lg">
+                                        {(["top", "center", "bottom"] as const).map(align => (
+                                            <button
+                                                key={align}
+                                                onClick={() => onUpdate({ ...data, contentVerticalAlign: align })}
+                                                className={`py-1.5 rounded-md text-xs font-medium capitalize transition-all ${(data.contentVerticalAlign || "center") === align ? "bg-white text-indigo-600 shadow-sm" : "text-gray-600 hover:bg-white/50"}`}
+                                            >
+                                                {align}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <button
-                                    onClick={() => onUpdate({ ...data, backgroundImage: "", backgroundMinHeight: undefined })}
+                                    onClick={() => onUpdate({ ...data, backgroundImage: "", backgroundMinHeight: undefined, contentVerticalAlign: undefined })}
                                     className="w-full py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
                                 >
                                     Remove Background Image

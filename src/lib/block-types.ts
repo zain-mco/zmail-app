@@ -136,6 +136,8 @@ export interface FooterData {
     backgroundImage?: string;
     /** Minimum height when background image is set */
     backgroundMinHeight?: number;
+    /** Vertical alignment of content within footer (when background image is set) */
+    contentVerticalAlign?: "top" | "center" | "bottom";
 
     // Structured fields
     companyName?: string;

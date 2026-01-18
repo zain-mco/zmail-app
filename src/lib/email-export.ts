@@ -429,21 +429,19 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
   const fontWeight = data.fontWeight || "normal";
   const fontSize = data.fontSize || 12;
 
-  const baseStyle = `padding: ${padding}px; background-color: ${escapeHtml(bgColor)}; border-top: 1px solid #e9ecef; font-family: ${fontFamily}; font-weight: ${fontWeight}; font-size: ${fontSize}px`;
+  // Background image styles
+  const hasBackgroundImage = !!data.backgroundImage;
+  const backgroundImageStyle = hasBackgroundImage
+    ? `background-image: url('${escapeHtml(data.backgroundImage || "")}'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: ${data.backgroundMinHeight || 200}px;`
+    : "";
+
+  const baseStyle = `padding: ${padding}px; background-color: ${escapeHtml(bgColor)}; border-top: 1px solid #e9ecef; font-family: ${fontFamily}; font-weight: ${fontWeight}; font-size: ${fontSize}px; ${backgroundImageStyle}`;
   const tdStyle = mergeStyles(baseStyle, style);
   const { bgcolor } = getEmailSafeStyles(style);
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : ` bgcolor="${escapeHtml(bgColor)}"`;
 
   // Build footer content sections
   const sections: string[] = [];
-
-  // Footer image above
-  if (data.footerImage?.src && data.footerImage?.position === "above") {
-    const imgHtml = data.footerImage.linkUrl
-      ? `<a href="${escapeHtml(data.footerImage.linkUrl)}" target="_blank" style="display: block; border: 0;"><img src="${escapeHtml(data.footerImage.src)}" alt="${escapeHtml(data.footerImage.alt || "")}" style="display: block; max-width: 100%; height: auto; margin: 0 auto; border: 0;"></a>`
-      : `<img src="${escapeHtml(data.footerImage.src)}" alt="${escapeHtml(data.footerImage.alt || "")}" style="display: block; max-width: 100%; height: auto; margin: 0 auto;">`;
-    sections.push(`<tr><td style="padding-bottom: 16px; text-align: center;">${imgHtml}</td></tr>`);
-  }
 
   // Social icons - using CDN PNG icons with optional background circles (enhanced)
   if (data.showSocialIcons && data.socialIcons && data.socialIcons.length > 0) {
@@ -511,21 +509,17 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
     sections.push(`<tr><td style="font-size: ${copyrightFontSize}px; opacity: 0.7; color: ${escapeHtml(textColor)}; text-align: center; padding-top: 8px;">© ${escapeHtml(data.copyrightYear)} ${escapeHtml(data.companyName || "Your Company")}. All rights reserved.</td></tr>`);
   }
 
-  // Footer image below
-  if (data.footerImage?.src && data.footerImage?.position === "below") {
-    const imgHtml = data.footerImage.linkUrl
-      ? `<a href="${escapeHtml(data.footerImage.linkUrl)}" target="_blank" style="display: block; border: 0;"><img src="${escapeHtml(data.footerImage.src)}" alt="${escapeHtml(data.footerImage.alt || "")}" style="display: block; max-width: 100%; height: auto; margin: 0 auto; border: 0;"></a>`
-      : `<img src="${escapeHtml(data.footerImage.src)}" alt="${escapeHtml(data.footerImage.alt || "")}" style="display: block; max-width: 100%; height: auto; margin: 0 auto;">`;
-    sections.push(`<tr><td style="padding-top: 16px; text-align: center;">${imgHtml}</td></tr>`);
-  }
-
   // If no content at all, show placeholder
   if (sections.length === 0) {
     sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">Footer text</td></tr>`);
   }
 
+  // Vertical alignment for email (using valign attribute for table compatibility)
+  const verticalAlign = data.contentVerticalAlign || "center";
+  const valignAttr = hasBackgroundImage ? ` valign="${verticalAlign}"` : "";
+
   return `          <tr>
-            <td${bgcolorAttr} style="${tdStyle}">
+            <td${bgcolorAttr}${valignAttr} style="${tdStyle}">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
 ${sections.join("\n")}
               </table>

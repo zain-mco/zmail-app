@@ -899,56 +899,47 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                 </div>
             </div>
 
-            {/* Footer Image Section */}
+            {/* Background Image Section */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <button
                     onClick={() => setShowImageSection(!showImageSection)}
                     className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                     <Label className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1.5 cursor-pointer">
-                        <span>🖼️</span> Footer Image (Optional)
+                        <span>🖼️</span> Background Image (Optional)
                     </Label>
                     <span className="text-gray-400">{showImageSection ? "−" : "+"}</span>
                 </button>
                 {showImageSection && (
                     <div className="p-3 space-y-3 bg-white">
                         <ImageUploader
-                            currentSrc={data.footerImage?.src || ""}
-                            onUpload={(url) => onUpdate({
-                                ...data,
-                                footerImage: {
-                                    ...data.footerImage,
-                                    src: url,
-                                    alt: data.footerImage?.alt || "Footer image",
-                                    position: data.footerImage?.position || "above"
-                                }
-                            })}
-                            onAltChange={(alt) => onUpdate({ ...data, footerImage: { ...data.footerImage, alt } })}
-                            currentAlt={data.footerImage?.alt}
-                            imageType="footer"
+                            currentSrc={data.backgroundImage || ""}
+                            onUpload={(url) => onUpdate({ ...data, backgroundImage: url })}
+                            imageType="background"
                         />
-                        {data.footerImage?.src && (
+                        {data.backgroundImage && (
                             <>
                                 <div>
-                                    <Label className="text-xs text-gray-500 mb-1.5 block">Position</Label>
-                                    <div className="grid grid-cols-2 gap-2 bg-gray-100/50 p-1 rounded-lg">
-                                        {(["above", "below"] as const).map(pos => (
-                                            <button
-                                                key={pos}
-                                                onClick={() => onUpdate({ ...data, footerImage: { ...data.footerImage, position: pos } })}
-                                                className={`py-1.5 rounded-md text-xs font-medium capitalize transition-all ${data.footerImage?.position === pos ? "bg-white text-indigo-600 shadow-sm" : "text-gray-600"}`}
-                                            >
-                                                {pos} Text
-                                            </button>
-                                        ))}
-                                    </div>
+                                    <Label className="text-[10px] text-gray-400 mb-1 flex justify-between">
+                                        <span>Minimum Height</span>
+                                        <span className="text-indigo-600">{data.backgroundMinHeight || 200}px</span>
+                                    </Label>
+                                    <input
+                                        type="range"
+                                        min={100}
+                                        max={500}
+                                        step={10}
+                                        value={data.backgroundMinHeight || 200}
+                                        onChange={(e) => onUpdate({ ...data, backgroundMinHeight: parseInt(e.target.value) })}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                    />
                                 </div>
-                                <Input
-                                    value={data.footerImage?.linkUrl || ""}
-                                    onChange={(e) => onUpdate({ ...data, footerImage: { ...data.footerImage, linkUrl: e.target.value } })}
-                                    placeholder="Image link URL (optional)"
-                                    className="text-xs"
-                                />
+                                <button
+                                    onClick={() => onUpdate({ ...data, backgroundImage: "", backgroundMinHeight: undefined })}
+                                    className="w-full py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
+                                >
+                                    Remove Background Image
+                                </button>
                             </>
                         )}
                     </div>

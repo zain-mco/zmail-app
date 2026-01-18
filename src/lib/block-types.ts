@@ -68,10 +68,6 @@ export interface EmailSettings {
     preheaderText?: string;
     /** Physical mailing address - required by CAN-SPAM law */
     physicalAddress?: string;
-    /** Unsubscribe link URL - important for spam prevention */
-    unsubscribeUrl?: string;
-    /** Unsubscribe link text - customizable unsubscribe message */
-    unsubscribeLinkText?: string;
 }
 
 export interface HeaderImageData {
@@ -135,13 +131,11 @@ export interface FooterData {
     fontWeight?: string;
     fontSize?: number;
 
-    // Optional footer image
-    footerImage?: {
-        src: string;
-        alt: string;
-        linkUrl?: string;
-        position: "above" | "below";  // Relative to text
-    };
+    // Background image (optional) - sits behind all footer content
+    /** Background image URL - full width, centered, no repeat */
+    backgroundImage?: string;
+    /** Minimum height when background image is set */
+    backgroundMinHeight?: number;
 
     // Structured fields
     companyName?: string;

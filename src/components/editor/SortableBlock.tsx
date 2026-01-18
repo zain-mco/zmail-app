@@ -672,26 +672,15 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
     const fontWeight = data.fontWeight || "normal";
     const fontSize = data.fontSize || 12;
 
-    // Footer Image Component
-    const FooterImage = data.footerImage?.src ? (
-        <div style={{ marginBottom: data.footerImage.position === "above" ? 16 : 0, marginTop: data.footerImage.position === "below" ? 16 : 0 }}>
-            {data.footerImage.linkUrl ? (
-                <a href={data.footerImage.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', border: 0 }}>
-                    <img
-                        src={data.footerImage.src}
-                        alt={data.footerImage.alt || "Footer image"}
-                        style={{ display: 'block', maxWidth: '100%', height: 'auto', margin: '0 auto', border: 0 }}
-                    />
-                </a>
-            ) : (
-                <img
-                    src={data.footerImage.src}
-                    alt={data.footerImage.alt || "Footer image"}
-                    style={{ display: 'block', maxWidth: '100%', height: 'auto', margin: '0 auto' }}
-                />
-            )}
-        </div>
-    ) : null;
+    // Background image styles
+    const hasBackgroundImage = !!data.backgroundImage;
+    const backgroundStyles: React.CSSProperties = hasBackgroundImage ? {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: data.backgroundMinHeight || 200,
+    } : {};
 
     // Social Icons Component - Using CDN images with enhanced options
     const SocialIconsSection = data.showSocialIcons && data.socialIcons && data.socialIcons.length > 0 ? (
@@ -806,11 +795,9 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                 lineHeight: 1.6,
                 color: data.textColor || EMAIL_STYLES.colors.footerText,
                 ...blockStyle,
+                ...backgroundStyles,
             }}
         >
-            {/* Footer image above */}
-            {data.footerImage?.position === "above" && FooterImage}
-
             {/* Social Icons */}
             {SocialIconsSection}
 
@@ -838,9 +825,6 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                     © {data.copyrightYear} {data.companyName || "Your Company"}. All rights reserved.
                 </div>
             )}
-
-            {/* Footer image below */}
-            {data.footerImage?.position === "below" && FooterImage}
         </div>
     );
 }

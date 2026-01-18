@@ -170,8 +170,6 @@ export function blocksToHtml(content: EmailContent): string {
   const emailTitle = settings?.emailTitle || "Email from Your Company";
   const preheaderText = settings?.preheaderText || "";
   const physicalAddress = settings?.physicalAddress || "";
-  const unsubscribeUrl = settings?.unsubscribeUrl || "";
-  const unsubscribeLinkText = settings?.unsubscribeLinkText || "Unsubscribe";
 
   // Simple solid background (gradients not supported in most email clients)
   const bgStyle = `background-color: ${contentBgColor};`;
@@ -190,23 +188,16 @@ export function blocksToHtml(content: EmailContent): string {
     &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>` : "";
 
-  // Build footer compliance section (physical address + unsubscribe)
+  // Build footer with physical address (CAN-SPAM compliance)
+  // Note: Unsubscribe link is handled by SendGrid
   let complianceFooter = "";
-  if (physicalAddress || unsubscribeUrl) {
-    const addressHtml = physicalAddress
-      ? `<p style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px;">${escapeHtml(physicalAddress)}</p>`
-      : "";
-    const unsubscribeHtml = unsubscribeUrl
-      ? `<p style="margin: 0; color: #6b7280; font-size: 12px;">
-          <a href="${escapeHtml(unsubscribeUrl)}" target="_blank" style="color: #6b7280; text-decoration: underline;">${escapeHtml(unsubscribeLinkText)}</a>
-        </p>`
-      : "";
-
+  if (physicalAddress) {
+    // Convert newlines to <br> for proper HTML display
+    const formattedAddress = escapeHtml(physicalAddress).replace(/\n/g, '<br>');
     complianceFooter = `
           <tr>
             <td align="center" style="padding: 20px 20px 30px 20px; border-top: 1px solid #e5e7eb;">
-              ${addressHtml}
-              ${unsubscribeHtml}
+              <p style="margin: 0; color: #6b7280; font-size: 12px; line-height: 1.5;">${formattedAddress}</p>
             </td>
           </tr>`;
   }

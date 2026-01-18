@@ -3,24 +3,25 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { EmailBlock, EmailContent } from "@/lib/block-types";
+import { EmailBlock, EmailContent, EmailSettings } from "@/lib/block-types";
 import { blocksToHtml } from "@/lib/email-export";
 
 interface ExportModalProps {
     campaignId: string;
     blocks: EmailBlock[];
+    settings?: EmailSettings;
     onClose: () => void;
 }
 
-export function ExportModal({ campaignId, blocks, onClose }: ExportModalProps) {
+export function ExportModal({ campaignId, blocks, settings, onClose }: ExportModalProps) {
     const [html, setHtml] = useState("");
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        const content: EmailContent = { blocks };
+        const content: EmailContent = { blocks, settings };
         const generatedHtml = blocksToHtml(content);
         setHtml(generatedHtml);
-    }, [blocks]);
+    }, [blocks, settings]);
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(html);

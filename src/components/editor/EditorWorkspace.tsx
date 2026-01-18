@@ -84,12 +84,13 @@ export function EditorWorkspace({
     const [contentBgColor, setContentBgColor] = useState(initialContent.settings?.contentBackgroundColor || "#ffffff");
     const [showBgPanel, setShowBgPanel] = useState(false);
 
+    // Default physical address for CAN-SPAM compliance
+    const DEFAULT_PHYSICAL_ADDRESS = "MCO – Mediterranean Conferences Organizing\nOffice 1203, Al Nahda Tower\nAbu Dhabi, United Arab Emirates";
+
     // Spam Prevention / Deliverability Settings
     const [emailTitle, setEmailTitle] = useState(initialContent.settings?.emailTitle || "");
     const [preheaderText, setPreheaderText] = useState(initialContent.settings?.preheaderText || "");
-    const [physicalAddress, setPhysicalAddress] = useState(initialContent.settings?.physicalAddress || "");
-    const [unsubscribeUrl, setUnsubscribeUrl] = useState(initialContent.settings?.unsubscribeUrl || "");
-    const [unsubscribeLinkText, setUnsubscribeLinkText] = useState(initialContent.settings?.unsubscribeLinkText || "Unsubscribe");
+    const [physicalAddress, setPhysicalAddress] = useState(initialContent.settings?.physicalAddress || DEFAULT_PHYSICAL_ADDRESS);
     const [showDeliverabilityPanel, setShowDeliverabilityPanel] = useState(false);
     const [showDeliverabilityAlert, setShowDeliverabilityAlert] = useState(false);
 
@@ -127,7 +128,7 @@ export function EditorWorkspace({
 
     // Check if all required deliverability fields are filled
     const imagesWithoutAlt = getImagesWithoutAlt();
-    const hasDeliverabilityIssues = emailTitle.trim() === "" || preheaderText.trim() === "";
+    const hasDeliverabilityIssues = emailTitle.trim() === "" || preheaderText.trim() === "" || physicalAddress.trim() === "";
     const hasImageAltIssues = imagesWithoutAlt.length > 0;
     const isDeliverabilityComplete = !hasDeliverabilityIssues && !hasImageAltIssues;
 
@@ -136,6 +137,7 @@ export function EditorWorkspace({
         const missing: string[] = [];
         if (!emailTitle.trim()) missing.push("Email Title");
         if (!preheaderText.trim()) missing.push("Preheader Text");
+        if (!physicalAddress.trim()) missing.push("Physical Address");
         return missing;
     };
 
@@ -557,8 +559,6 @@ export function EditorWorkspace({
                             emailTitle,
                             preheaderText,
                             physicalAddress,
-                            unsubscribeUrl,
-                            unsubscribeLinkText,
                         }
                     },
                     generateHtml: true,
@@ -801,37 +801,6 @@ export function EditorWorkspace({
                                                 Required by CAN-SPAM law for commercial emails
                                             </p>
                                         </div>
-
-                                        {/* Unsubscribe URL */}
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 block mb-1">
-                                                Unsubscribe Link URL
-                                            </label>
-                                            <input
-                                                type="url"
-                                                value={unsubscribeUrl}
-                                                onChange={(e) => setUnsubscribeUrl(e.target.value)}
-                                                placeholder="https://example.com/unsubscribe?email={{email}}"
-                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-1">
-                                                Gmail specifically looks for unsubscribe links
-                                            </p>
-                                        </div>
-
-                                        {/* Unsubscribe Link Text */}
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 block mb-1">
-                                                Unsubscribe Link Text
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={unsubscribeLinkText}
-                                                onChange={(e) => setUnsubscribeLinkText(e.target.value)}
-                                                placeholder="Unsubscribe"
-                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
-                                            />
-                                        </div>
                                     </div>
 
                                     {/* Checklist Summary */}
@@ -861,14 +830,6 @@ export function EditorWorkspace({
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
                                                 )}
                                                 <span>Physical Address</span>
-                                            </div>
-                                            <div className={`flex items-center gap-2 text-xs ${unsubscribeUrl ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                {unsubscribeUrl ? (
-                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                                ) : (
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
-                                                )}
-                                                <span>Unsubscribe Link</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1093,6 +1054,16 @@ export function EditorWorkspace({
                     <ExportModal
                         campaignId={campaignId}
                         blocks={blocks}
+                        settings={{
+                            width: initialContent.settings?.width || 600,
+                            backgroundColor: initialContent.settings?.backgroundColor || "#f4f4f4",
+                            contentBackgroundColor: contentBgColor,
+                            fontFamily: initialContent.settings?.fontFamily || "Arial, Helvetica, sans-serif",
+                            responsive: initialContent.settings?.responsive ?? true,
+                            emailTitle,
+                            preheaderText,
+                            physicalAddress,
+                        }}
                         onClose={() => setShowExport(false)}
                     />
                 )}

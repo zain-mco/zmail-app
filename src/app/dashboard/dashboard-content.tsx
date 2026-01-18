@@ -114,13 +114,13 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
         setIsLoading(true);
 
         try {
-            // Use clone endpoint - creates an independent copy for the recipient
-            const res = await fetch(`/api/campaigns/${selectedCampaign.id}/clone`, {
+            // Use share endpoint - creates SharedAccess so campaign appears in "Shared with me" tab
+            const res = await fetch(`/api/campaigns/${selectedCampaign.id}/share`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userId: selectedUserId,
-                    newTitle: `${selectedCampaign.title}`,
+                    permission: "EDIT",  // Default to EDIT so they can work with it
                 }),
             });
 
@@ -131,7 +131,7 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                 showToast({
                     type: "success",
                     title: "Campaign shared",
-                    message: `A copy has been created for ${targetUser?.username || "the user"}.`,
+                    message: `Shared with ${targetUser?.username || "the user"}. They can transfer it to their campaigns.`,
                 });
                 router.refresh();
             } else {
@@ -259,6 +259,89 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                 showToast({
                     type: "error",
                     title: "Failed to duplicate",
+                    message: error.error || "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    // Remove shared campaign - removes it from the user's shared list
+    async function handleRemoveShared(campaign: Campaign) {
+        const confirmed = await confirm({
+            title: "Remove Shared Campaign",
+            message: `Remove "${campaign.title}" from your shared campaigns? This won't delete the original campaign.`,
+            confirmText: "Remove",
+            cancelText: "Cancel",
+            confirmVariant: "destructive",
+        });
+
+        if (!confirmed) return;
+
+        setIsLoading(true);
+        try {
+            const res = await fetch(`/api/campaigns/${campaign.id}/shared-access`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                showToast({
+                    type: "success",
+                    title: "Campaign removed",
+                    message: `"${campaign.title}" has been removed from your shared campaigns.`,
+                });
+                router.refresh();
+            } else {
+                showToast({
+                    type: "error",
+                    title: "Failed to remove",
+                    message: "Please try again.",
+                });
+            }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    // Transfer shared campaign to My Campaigns - creates a copy owned by the user
+    async function handleTransferToMyCampaigns(campaign: Campaign) {
+        setIsLoading(true);
+        try {
+            // Clone the campaign for the current user
+            const res = await fetch(`/api/campaigns/${campaign.id}/clone`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: currentUserId,
+                    newTitle: campaign.title,
+                }),
+            });
+
+            if (res.ok) {
+                showToast({
+                    type: "success",
+                    title: "Campaign transferred",
+                    message: `"${campaign.title}" has been added to your campaigns.`,
+                });
+                router.refresh();
+            } else {
+                const error = await res.json();
+                showToast({
+                    type: "error",
+                    title: "Failed to transfer",
                     message: error.error || "Please try again.",
                 });
             }
@@ -635,13 +718,35 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                                                 </p>
                                             </div>
 
-                                            <div className="mt-auto">
+                                            <div className="mt-auto flex items-center gap-3 pt-4 border-t border-gray-100/50">
                                                 <Button
-                                                    className="w-full bg-white text-purple-600 border border-purple-200 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                    size="sm"
+                                                    className="flex-1 bg-white text-purple-600 border border-purple-200 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
                                                     onClick={() => router.push(`/editor/${campaign.id}`)}
                                                 >
-                                                    {campaign.permission === "EDIT" ? "Edit Campaign" : "View Campaign"}
+                                                    {campaign.permission === "EDIT" ? "Edit" : "View"}
                                                 </Button>
+
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button size="icon" variant="ghost" className="h-9 w-9 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600">
+                                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <circle cx="12" cy="12" r="1" />
+                                                                <circle cx="12" cy="5" r="1" />
+                                                                <circle cx="12" cy="19" r="1" />
+                                                            </svg>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-56">
+                                                        <DropdownMenuItem onClick={() => handleTransferToMyCampaigns(campaign)}>
+                                                            <span className="mr-2">📥</span> Transfer to My Campaigns
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => handleRemoveShared(campaign)}>
+                                                            <span className="mr-2">🗑️</span> Remove from List
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                     </SpotlightCard>
@@ -659,7 +764,7 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                         <DialogTitle>Share Campaign</DialogTitle>
                         <DialogDescription>
                             Share &quot;{selectedCampaign?.title}&quot; with a team member.
-                            A copy will be created for them - your original stays unchanged.
+                            It will appear in their &quot;Shared with Me&quot; tab. They can then transfer it to their own campaigns if needed.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 mt-4">

@@ -56,6 +56,9 @@ const socialPlatformColors: Record<string, string> = {
  * @param platform - The social platform name
  * @param style - "white" | "black" | "brand"
  */
+// VERSION: Increment this when updating icons on CDN to bust cache
+const SOCIAL_ICONS_VERSION = "20260118";
+
 function getSocialIconUrl(platform: string, style: string): string {
   // Map platform names to CDN filenames (some differ)
   const platformFilenames: Record<string, string> = {
@@ -69,7 +72,7 @@ function getSocialIconUrl(platform: string, style: string): string {
     brand: "brand",
   };
   const styleSuffix = styleMap[style] || "white";
-  return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png`;
+  return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png?v=${SOCIAL_ICONS_VERSION}`;
 }
 
 /**

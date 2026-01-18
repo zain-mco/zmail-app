@@ -705,10 +705,10 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                     const showBackground = data.socialIconShowBackground !== false;
                     const bgRadius = data.socialIconBackgroundRadius ?? 50;
 
-                    // Get CDN icon URL
+                    // Get CDN icon URL (with cache-busting version)
                     const platformFilenames: Record<string, string> = { email: "mail" };
                     const filename = platformFilenames[icon.platform] || icon.platform;
-                    const iconUrl = `https://mco-cdn.b-cdn.net/mco/icons/${filename}-${iconStyle}.png`;
+                    const iconUrl = `https://mco-cdn.b-cdn.net/mco/icons/${filename}-${iconStyle}.png?v=20260118`;
 
                     // Get brand background color
                     const bgColors: Record<string, string> = {
@@ -1034,6 +1034,9 @@ const socialPlatformColors: Record<string, string> = {
 };
 
 // Get CDN URL for a social icon (same logic as email-export.ts)
+// VERSION: Increment this when updating icons on CDN to bust cache
+const SOCIAL_ICONS_VERSION = "20260118";
+
 function getSocialIconUrl(platform: string, iconStyle: string): string {
     const platformFilenames: Record<string, string> = {
         email: "mail",
@@ -1045,7 +1048,7 @@ function getSocialIconUrl(platform: string, iconStyle: string): string {
         brand: "brand",
     };
     const styleSuffix = styleMap[iconStyle] || "white";
-    return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png`;
+    return `${SOCIAL_ICONS_CDN_BASE}/${filename}-${styleSuffix}.png?v=${SOCIAL_ICONS_VERSION}`;
 }
 
 function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: BlockStyle }) {

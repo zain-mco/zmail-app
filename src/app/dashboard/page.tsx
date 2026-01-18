@@ -48,15 +48,18 @@ export default async function DashboardPage() {
         },
     });
 
-    // Fetch all team users for sharing dropdown
+    // Fetch all users for sharing dropdown (both TEAM and ADMIN, except current user)
     const teamUsers = await prisma.user.findMany({
         where: {
-            role: "TEAM",
             id: { not: session.user.id },
         },
         select: {
             id: true,
             username: true,
+            role: true,
+        },
+        orderBy: {
+            role: "asc",  // ADMIN first, then TEAM
         },
     });
 

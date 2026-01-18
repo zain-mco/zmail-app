@@ -43,6 +43,7 @@ interface Campaign {
 interface TeamUser {
     id: string;
     username: string;
+    role?: "ADMIN" | "TEAM";
 }
 
 interface DashboardContentProps {
@@ -779,7 +780,7 @@ export function DashboardContent({ campaigns, teamUsers, currentUserId }: Dashbo
                                 <option value="">Choose a user...</option>
                                 {teamUsers.map((user) => (
                                     <option key={user.id} value={user.id}>
-                                        {user.username}
+                                        {user.username}{user.role === "ADMIN" ? " (Admin)" : ""}
                                     </option>
                                 ))}
                             </select>

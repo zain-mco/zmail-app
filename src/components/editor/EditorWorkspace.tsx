@@ -84,6 +84,66 @@ export function EditorWorkspace({
     const [contentBgColor, setContentBgColor] = useState(initialContent.settings?.contentBackgroundColor || "#ffffff");
     const [showBgPanel, setShowBgPanel] = useState(false);
 
+    // Spam Prevention / Deliverability Settings
+    const [emailTitle, setEmailTitle] = useState(initialContent.settings?.emailTitle || "");
+    const [preheaderText, setPreheaderText] = useState(initialContent.settings?.preheaderText || "");
+    const [physicalAddress, setPhysicalAddress] = useState(initialContent.settings?.physicalAddress || "");
+    const [unsubscribeUrl, setUnsubscribeUrl] = useState(initialContent.settings?.unsubscribeUrl || "");
+    const [unsubscribeLinkText, setUnsubscribeLinkText] = useState(initialContent.settings?.unsubscribeLinkText || "Unsubscribe");
+    const [showDeliverabilityPanel, setShowDeliverabilityPanel] = useState(false);
+    const [showDeliverabilityAlert, setShowDeliverabilityAlert] = useState(false);
+
+    // Check for images without alt text (recursive for nested blocks)
+    const getImagesWithoutAlt = useCallback(() => {
+        const imagesWithoutAlt: string[] = [];
+
+        const checkBlocks = (blocks: EmailBlock[]) => {
+            blocks.forEach(block => {
+                // Check image types
+                if (block.type === "Image" || block.type === "HeaderImage" || block.type === "Gif") {
+                    const data = block.data as any;
+                    if (data.src && (!data.alt || !data.alt.trim())) {
+                        imagesWithoutAlt.push(block.type);
+                    }
+                }
+                // Check nested blocks in Columns
+                if (block.type === "Columns") {
+                    const columnsData = block.data as ColumnsData;
+                    columnsData.columns.forEach(column => checkBlocks(column));
+                }
+                // Check nested blocks in Container
+                if (block.type === "Container") {
+                    const containerData = block.data as any;
+                    if (containerData.blocks?.length > 0) {
+                        checkBlocks(containerData.blocks);
+                    }
+                }
+            });
+        };
+
+        checkBlocks(blocks);
+        return imagesWithoutAlt;
+    }, [blocks]);
+
+    // Check if all required deliverability fields are filled
+    const imagesWithoutAlt = getImagesWithoutAlt();
+    const hasDeliverabilityIssues = emailTitle.trim() === "" || preheaderText.trim() === "";
+    const hasImageAltIssues = imagesWithoutAlt.length > 0;
+    const isDeliverabilityComplete = !hasDeliverabilityIssues && !hasImageAltIssues;
+
+    // Get separate lists for different issue types
+    const getMissingDeliverabilityFields = () => {
+        const missing: string[] = [];
+        if (!emailTitle.trim()) missing.push("Email Title");
+        if (!preheaderText.trim()) missing.push("Preheader Text");
+        return missing;
+    };
+
+    const getImageAltIssueText = () => {
+        if (imagesWithoutAlt.length === 0) return "";
+        return `${imagesWithoutAlt.length} image${imagesWithoutAlt.length > 1 ? 's' : ''} missing alt text`;
+    };
+
     // Background is always solid color
     const contentBackground = contentBgColor;
 
@@ -492,7 +552,13 @@ export function EditorWorkspace({
                         blocks,
                         settings: {
                             ...initialContent.settings,
-                            contentBackgroundColor: contentBgColor
+                            contentBackgroundColor: contentBgColor,
+                            // Spam Prevention / Deliverability Settings
+                            emailTitle,
+                            preheaderText,
+                            physicalAddress,
+                            unsubscribeUrl,
+                            unsubscribeLinkText,
                         }
                     },
                     generateHtml: true,
@@ -636,6 +702,179 @@ export function EditorWorkspace({
                                 </div>
                             )}
                         </div>
+
+                        {/* Email Deliverability Settings Panel */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowDeliverabilityPanel(!showDeliverabilityPanel)}
+                                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-1.5 border border-gray-200 transition-colors"
+                                title="Email Deliverability Settings (Spam Prevention)"
+                            >
+                                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-xs font-medium text-gray-600">Deliverability</span>
+                                <svg className={`w-3 h-3 text-gray-400 transition-transform ${showDeliverabilityPanel ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Deliverability Dropdown Panel */}
+                            {showDeliverabilityPanel && (
+                                <div className="absolute top-full left-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 max-h-[70vh] overflow-y-auto">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <h4 className="text-sm font-bold text-gray-800">Email Deliverability</h4>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowDeliverabilityPanel(false)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <p className="text-xs text-gray-500 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                                        ⚠️ These settings help prevent your email from going to spam. Fill them out to improve deliverability.
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        {/* Email Title */}
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 block mb-1">
+                                                Email Title <span className="text-amber-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={emailTitle}
+                                                onChange={(e) => setEmailTitle(e.target.value)}
+                                                placeholder="e.g., Your Weekly Newsletter"
+                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Shows in browser tab and helps Gmail identify your email
+                                            </p>
+                                        </div>
+
+                                        {/* Preheader Text */}
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 block mb-1">
+                                                Preheader Text <span className="text-amber-500">*</span>
+                                            </label>
+                                            <textarea
+                                                value={preheaderText}
+                                                onChange={(e) => setPreheaderText(e.target.value)}
+                                                placeholder="e.g., Don't miss our latest updates and special offers..."
+                                                rows={2}
+                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none resize-none"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Preview text shown in inbox next to subject line (40-130 characters recommended)
+                                            </p>
+                                        </div>
+
+                                        <hr className="border-gray-200" />
+
+                                        <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">
+                                            CAN-SPAM Compliance
+                                        </p>
+
+                                        {/* Physical Address */}
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 block mb-1">
+                                                Physical Mailing Address
+                                            </label>
+                                            <textarea
+                                                value={physicalAddress}
+                                                onChange={(e) => setPhysicalAddress(e.target.value)}
+                                                placeholder="e.g., 123 Main Street, Suite 100, City, State 12345, Country"
+                                                rows={2}
+                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none resize-none"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Required by CAN-SPAM law for commercial emails
+                                            </p>
+                                        </div>
+
+                                        {/* Unsubscribe URL */}
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 block mb-1">
+                                                Unsubscribe Link URL
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={unsubscribeUrl}
+                                                onChange={(e) => setUnsubscribeUrl(e.target.value)}
+                                                placeholder="https://example.com/unsubscribe?email={{email}}"
+                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Gmail specifically looks for unsubscribe links
+                                            </p>
+                                        </div>
+
+                                        {/* Unsubscribe Link Text */}
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 block mb-1">
+                                                Unsubscribe Link Text
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={unsubscribeLinkText}
+                                                onChange={(e) => setUnsubscribeLinkText(e.target.value)}
+                                                placeholder="Unsubscribe"
+                                                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Checklist Summary */}
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <p className="text-xs font-medium text-gray-600 mb-2">Deliverability Checklist:</p>
+                                        <div className="space-y-1">
+                                            <div className={`flex items-center gap-2 text-xs ${emailTitle ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                {emailTitle ? (
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
+                                                )}
+                                                <span>Email Title</span>
+                                            </div>
+                                            <div className={`flex items-center gap-2 text-xs ${preheaderText ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                {preheaderText ? (
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
+                                                )}
+                                                <span>Preheader Text</span>
+                                            </div>
+                                            <div className={`flex items-center gap-2 text-xs ${physicalAddress ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                {physicalAddress ? (
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
+                                                )}
+                                                <span>Physical Address</span>
+                                            </div>
+                                            <div className={`flex items-center gap-2 text-xs ${unsubscribeUrl ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                {unsubscribeUrl ? (
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /></svg>
+                                                )}
+                                                <span>Unsubscribe Link</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Section: Actions */}
@@ -661,7 +900,13 @@ export function EditorWorkspace({
                                         icon={ToolbarIcons.export}
                                         label="Export HTML"
                                         shortcut="Ctrl+E"
-                                        onClick={() => setShowExport(true)}
+                                        onClick={() => {
+                                            if (!isDeliverabilityComplete) {
+                                                setShowDeliverabilityAlert(true);
+                                            } else {
+                                                setShowExport(true);
+                                            }
+                                        }}
                                         disabled={blocks.length === 0}
                                     />
                                 </ToolbarGroup>
@@ -850,6 +1095,109 @@ export function EditorWorkspace({
                         blocks={blocks}
                         onClose={() => setShowExport(false)}
                     />
+                )}
+            </AnimatePresence>
+
+            {/* Deliverability Alert Modal */}
+            <AnimatePresence>
+                {showDeliverabilityAlert && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                        onClick={() => setShowDeliverabilityAlert(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-amber-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900">Cannot Export Yet</h3>
+                                        <p className="text-sm text-amber-700">Please fix the following issues</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="px-6 py-5 space-y-4">
+                                {/* Deliverability Issues Section */}
+                                {hasDeliverabilityIssues && (
+                                    <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="font-semibold text-indigo-800 text-sm">Deliverability Settings</span>
+                                        </div>
+                                        <div className="space-y-1 ml-7">
+                                            {getMissingDeliverabilityFields().map((field) => (
+                                                <div key={field} className="flex items-center gap-2 text-sm">
+                                                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    <span className="text-gray-700">{field}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setShowDeliverabilityAlert(false);
+                                                setShowDeliverabilityPanel(true);
+                                            }}
+                                            className="mt-3 ml-7 text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                                        >
+                                            <span>→</span> Open Deliverability Settings
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Image Alt Text Issues Section */}
+                                {hasImageAltIssues && (
+                                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="font-semibold text-purple-800 text-sm">Image Descriptions Missing</span>
+                                        </div>
+                                        <div className="ml-7">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                <span className="text-gray-700">{getImageAltIssueText()}</span>
+                                            </div>
+                                            <p className="text-xs text-purple-600 mt-2">
+                                                💡 Click on each image in your email, then add a description in the Properties panel on the right.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                                <button
+                                    onClick={() => setShowDeliverabilityAlert(false)}
+                                    className="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-all"
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </motion.div>

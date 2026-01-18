@@ -166,18 +166,63 @@ export function blocksToHtml(content: EmailContent): string {
   const settings = content.settings;
   const contentBgColor = settings?.contentBackgroundColor || "#ffffff";
 
+  // Spam Prevention Settings
+  const emailTitle = settings?.emailTitle || "Email from Your Company";
+  const preheaderText = settings?.preheaderText || "";
+  const physicalAddress = settings?.physicalAddress || "";
+  const unsubscribeUrl = settings?.unsubscribeUrl || "";
+  const unsubscribeLinkText = settings?.unsubscribeLinkText || "Unsubscribe";
+
   // Simple solid background (gradients not supported in most email clients)
   const bgStyle = `background-color: ${contentBgColor};`;
   const bgcolorAttr = contentBgColor;
 
   let bodyContent = blocks.map((block) => renderBlock(block)).join("\n");
 
+  // Build preheader HTML (hidden preview text for inbox)
+  const preheaderHtml = preheaderText ? `
+  <!-- Preheader text - shows in inbox preview, helps Gmail deliverability -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    ${escapeHtml(preheaderText)}
+  </div>
+  <!-- Invisible spacer to prevent preheader from showing inline -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>` : "";
+
+  // Build footer compliance section (physical address + unsubscribe)
+  let complianceFooter = "";
+  if (physicalAddress || unsubscribeUrl) {
+    const addressHtml = physicalAddress
+      ? `<p style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px;">${escapeHtml(physicalAddress)}</p>`
+      : "";
+    const unsubscribeHtml = unsubscribeUrl
+      ? `<p style="margin: 0; color: #6b7280; font-size: 12px;">
+          <a href="${escapeHtml(unsubscribeUrl)}" target="_blank" style="color: #6b7280; text-decoration: underline;">${escapeHtml(unsubscribeLinkText)}</a>
+        </p>`
+      : "";
+
+    complianceFooter = `
+          <tr>
+            <td align="center" style="padding: 20px 20px 30px 20px; border-top: 1px solid #e5e7eb;">
+              ${addressHtml}
+              ${unsubscribeHtml}
+            </td>
+          </tr>`;
+  }
+
   // Wrap in email-safe HTML structure
+  // NOTE: Google Fonts removed - they cause external requests which can trigger spam filters
+  // Using web-safe font stack instead for maximum compatibility
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>${escapeHtml(emailTitle)}</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -187,18 +232,21 @@ export function blocksToHtml(content: EmailContent): string {
     </xml>
   </noscript>
   <![endif]-->
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
-    /* Web font fallback for email clients that don't support external fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto:wght@300;400;700&display=swap');
+    /* Reset styles for email clients */
+    body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">${preheaderHtml}
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4;">
     <tr>
       <td align="center" style="padding: 20px 0;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" bgcolor="${bgcolorAttr}" style="${bgStyle} max-width: 600px;">
 ${bodyContent}
+${complianceFooter}
         </table>
       </td>
     </tr>
@@ -254,6 +302,7 @@ function renderHeaderImage(data: HeaderImageData, style?: BlockStyle): string {
   const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
 
   // Build link-wrapped or standalone image
+  // Alt text is now mandatory - validated before export
   const imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="600" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
 
   const content = data.linkUrl
@@ -616,6 +665,7 @@ function renderImage(data: ImageData, style?: BlockStyle): string {
   }
   const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
 
+  // Alt text is now mandatory - validated before export
   let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
 
   // Wrap with link if provided
@@ -662,6 +712,7 @@ function renderGif(data: GifData, style?: BlockStyle): string {
   const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
 
   // GIFs are rendered as standard img tags - they animate in supporting clients
+  // Alt text is now mandatory - validated before export
   let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" ${widthAttr} style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
 
   // Wrap with link if provided
@@ -939,6 +990,7 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
       }
       const imgRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
       // Use width HTML attribute for maximum email client compatibility
+      // Alt text is now mandatory - validated before export
       let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="${imgWidth}" style="display: block; max-width: 100%; height: auto; ${imgBorderStyle}${imgRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;
@@ -971,6 +1023,7 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
       }
       const gifRadiusStyle = data.borderRadius && data.borderRadius > 0 ? ` border-radius: ${data.borderRadius}px;` : "";
       // Use width HTML attribute for maximum email client compatibility
+      // Alt text is now mandatory - validated before export
       let imgHtml = `<img src="${escapeHtml(data.src)}" alt="${escapeHtml(data.alt || "")}" width="${gifWidth}" style="display: block; max-width: 100%; height: auto; ${gifBorderStyle}${gifRadiusStyle}">`;
       if (data.linkUrl) {
         imgHtml = `<a href="${escapeHtml(data.linkUrl)}" target="_blank" style="text-decoration: none;">${imgHtml}</a>`;

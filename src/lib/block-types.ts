@@ -60,6 +60,18 @@ export interface EmailSettings {
     contentBackgroundColor: string;
     fontFamily: string;
     responsive: boolean;
+
+    // Spam Prevention / Deliverability Settings
+    /** Email title - appears in browser tab and helps with deliverability */
+    emailTitle?: string;
+    /** Preheader text - preview text shown in inbox, critical for Gmail deliverability */
+    preheaderText?: string;
+    /** Physical mailing address - required by CAN-SPAM law */
+    physicalAddress?: string;
+    /** Unsubscribe link URL - important for spam prevention */
+    unsubscribeUrl?: string;
+    /** Unsubscribe link text - customizable unsubscribe message */
+    unsubscribeLinkText?: string;
 }
 
 export interface HeaderImageData {
@@ -266,11 +278,11 @@ export interface EmailContent {
 export const defaultBlockData: Record<BlockType, BlockData> = {
     HeaderImage: {
         src: "",
-        alt: "Header Image",
+        alt: "",  // Empty - user must provide description
     } as HeaderImageData,
     Image: {
         src: "",
-        alt: "Image",
+        alt: "",  // Empty - user must provide description
         width: "auto",
         alignment: "center",
         linkUrl: "",
@@ -278,7 +290,7 @@ export const defaultBlockData: Record<BlockType, BlockData> = {
     } as ImageData,
     Gif: {
         src: "",
-        alt: "Animated GIF",
+        alt: "",  // Empty - user must provide description
         width: "auto",
         alignment: "center",
         linkUrl: "",

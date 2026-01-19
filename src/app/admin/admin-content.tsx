@@ -15,6 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { useToast, useConfirm } from "@/components/AlertProvider";
 
 interface User {
     id: string;
@@ -33,6 +34,8 @@ interface AdminContentProps {
 
 export function AdminContent({ users, currentUserId }: AdminContentProps) {
     const router = useRouter();
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isResetOpen, setIsResetOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -102,10 +105,16 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
         }
     }
 
-    async function handleDeleteUser(userId: string) {
-        if (!confirm("Are you sure you want to delete this user? This will also delete all their campaigns.")) {
-            return;
-        }
+    async function handleDeleteUser(userId: string, username: string) {
+        const confirmed = await confirm({
+            title: "Delete User",
+            message: `Are you sure you want to delete "${username}"? This will also delete all their campaigns and cannot be undone.`,
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            confirmVariant: "destructive",
+        });
+
+        if (!confirmed) return;
 
         setIsLoading(true);
 
@@ -115,8 +124,26 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
             });
 
             if (res.ok) {
+                showToast({
+                    type: "success",
+                    title: "User deleted",
+                    message: `"${username}" has been deleted successfully.`,
+                });
                 router.refresh();
+            } else {
+                const data = await res.json();
+                showToast({
+                    type: "error",
+                    title: "Failed to delete user",
+                    message: data.error || "Please try again.",
+                });
             }
+        } catch {
+            showToast({
+                type: "error",
+                title: "Error",
+                message: "Something went wrong. Please try again.",
+            });
         } finally {
             setIsLoading(false);
         }
@@ -427,7 +454,7 @@ export function AdminContent({ users, currentUserId }: AdminContentProps) {
                                                 <Button
                                                     size="sm"
                                                     variant="destructive"
-                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    onClick={() => handleDeleteUser(user.id, user.username)}
                                                     disabled={isLoading}
                                                 >
                                                     Delete

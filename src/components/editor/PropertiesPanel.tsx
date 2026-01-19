@@ -1021,7 +1021,7 @@ function FooterProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                                                 newIcons[idx] = { ...newIcons[idx], url: e.target.value };
                                                 onUpdate({ ...data, socialIcons: newIcons });
                                             }}
-                                            placeholder={icon.platform === "email" ? "mailto:..." : icon.platform === "phone" ? "tel:+..." : "https://..."}
+                                            placeholder={icon.platform === "email" ? "contact@example.com" : icon.platform === "phone" ? "+971 52 123 4567" : "https://..."}
                                             className="text-xs flex-1"
                                         />
                                     </div>

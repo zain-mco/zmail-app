@@ -83,6 +83,38 @@ function getSocialPlatformColor(platform: string): string {
 }
 
 /**
+ * Format social icon URL based on platform type
+ * - Email: Adds mailto: prefix if not present
+ * - Phone: Adds tel: prefix and removes spaces from number
+ * - Others: Returns URL as-is
+ */
+function formatSocialIconUrl(platform: string, url: string): string {
+  if (!url) return "";
+
+  const trimmedUrl = url.trim();
+
+  if (platform === "email") {
+    // Add mailto: prefix if not already present
+    if (trimmedUrl.toLowerCase().startsWith("mailto:")) {
+      return trimmedUrl;
+    }
+    return `mailto:${trimmedUrl}`;
+  }
+
+  if (platform === "phone") {
+    // Add tel: prefix and remove all spaces from the number
+    if (trimmedUrl.toLowerCase().startsWith("tel:")) {
+      // Remove spaces from existing tel: URL
+      return trimmedUrl.replace(/\s+/g, "");
+    }
+    // Remove spaces and add tel: prefix
+    return `tel:${trimmedUrl.replace(/\s+/g, "")}`;
+  }
+
+  return trimmedUrl;
+}
+
+/**
  * Convert BlockStyle to email-safe HTML attributes and inline styles
  * Returns both bgcolor attribute and inline CSS for maximum compatibility
  */
@@ -458,19 +490,21 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
         const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
         const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
         const iconBgColor = getSocialPlatformColor(icon.platform);
+        // Format the URL properly for email/phone platforms
+        const formattedUrl = formatSocialIconUrl(icon.platform, icon.url);
 
         if (showBackground) {
           // Use table-based layout for maximum email compatibility with background circles
           const radiusStyle = bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "";
           return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${iconBgColor}" style="${radiusStyle} padding: 4px;">
-          <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
+          <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
             <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
           </a>
         </td>`;
         } else {
           // No background - just the icon
           return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
-          <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
+          <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;">
             <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
           </a>
         </td>`;
@@ -567,19 +601,21 @@ function renderSocialIcons(data: SocialIconsData, style?: BlockStyle): string {
 
     const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
     const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+    // Format URL for email/phone platforms
+    const formattedUrl = formatSocialIconUrl(icon.platform, icon.url);
 
     if (showBg) {
       // Industry-standard approach: PNG icon on colored background
       const radiusStyle = bgRadius === 50 ? "border-radius: 50%;" : (bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "");
       return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="${radiusStyle} padding: 4px;">
-        <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+        <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
           <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
         </a>
       </td>`;
     } else {
       // No background - just the icon
       return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
-        <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+        <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
           <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0; width: ${iconSize}px; height: ${iconSize}px;">
         </a>
       </td>`;
@@ -1117,17 +1153,19 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
 
         const iconUrl = getSocialIconUrl(icon.platform, iconStyle);
         const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
+        // Format URL for email/phone platforms
+        const formattedUrl = formatSocialIconUrl(icon.platform, icon.url);
 
         if (showBg) {
           const radiusStyle = bgRadius === 50 ? "border-radius: 50%;" : (bgRadius > 0 ? `border-radius: ${bgRadius}%;` : "");
           return `<td width="${iconSize + 8}" height="${iconSize + 8}" align="center" bgcolor="${bgColor}" style="${radiusStyle} padding: 4px;">
-            <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+            <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
               <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0;">
             </a>
           </td>`;
         } else {
           return `<td width="${iconSize}" align="center" style="padding: 0 ${iconSpacing / 2}px;">
-            <a href="${escapeHtml(icon.url)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
+            <a href="${escapeHtml(formattedUrl)}" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; border: 0;" title="${platformLabel}">
               <img src="${iconUrl}" alt="${platformLabel}" width="${iconSize}" height="${iconSize}" style="display: block; border: 0;">
             </a>
           </td>`;

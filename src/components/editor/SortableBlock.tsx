@@ -1,4 +1,5 @@
 "use client";
+// Social icon URL formatting: mailto: for email, tel: for phone
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -721,11 +722,28 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                     const bgColor = bgColors[icon.platform] || "#333333";
                     const platformLabel = icon.platform.charAt(0).toUpperCase() + icon.platform.slice(1);
 
+                    // Format URL for email/phone platforms
+                    const formatSocialIconUrl = (platform: string, url: string): string => {
+                        if (!url) return "";
+                        const trimmedUrl = url.trim();
+                        if (platform === "email") {
+                            return trimmedUrl.toLowerCase().startsWith("mailto:") ? trimmedUrl : `mailto:${trimmedUrl}`;
+                        }
+                        if (platform === "phone") {
+                            const cleanUrl = trimmedUrl.toLowerCase().startsWith("tel:")
+                                ? trimmedUrl.replace(/\s+/g, "")
+                                : `tel:${trimmedUrl.replace(/\s+/g, "")}`;
+                            return cleanUrl;
+                        }
+                        return trimmedUrl;
+                    };
+                    const formattedUrl = formatSocialIconUrl(icon.platform, icon.url);
+
                     if (showBackground) {
                         return (
                             <a
                                 key={`${icon.platform}-${idx}`}
-                                href={icon.url}
+                                href={formattedUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -758,7 +776,7 @@ function FooterRenderer({ data, style }: { data: FooterData; style?: BlockStyle 
                         return (
                             <a
                                 key={`${icon.platform}-${idx}`}
-                                href={icon.url}
+                                href={formattedUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -1109,10 +1127,26 @@ function SocialIconsRenderer({ data, style }: { data: SocialIconsData; style?: B
                     padding: "4px",
                 } : {};
 
+                // Format URL for email/phone platforms
+                const formatUrl = (platform: string, url: string): string => {
+                    if (!url) return "";
+                    const trimmedUrl = url.trim();
+                    if (platform === "email") {
+                        return trimmedUrl.toLowerCase().startsWith("mailto:") ? trimmedUrl : `mailto:${trimmedUrl}`;
+                    }
+                    if (platform === "phone") {
+                        return trimmedUrl.toLowerCase().startsWith("tel:")
+                            ? trimmedUrl.replace(/\s+/g, "")
+                            : `tel:${trimmedUrl.replace(/\s+/g, "")}`;
+                    }
+                    return trimmedUrl;
+                };
+                const formattedUrl = formatUrl(icon.platform, icon.url);
+
                 return (
                     <a
                         key={`${icon.platform}-${index}`}
-                        href={icon.url}
+                        href={formattedUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{

@@ -587,6 +587,21 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
         justifyContent: alignItemsMap[verticalAlign],
     } : {};
 
+    // Check if border is set - if so, use inline-block to wrap around content
+    const hasBorder = blockStyle.border !== undefined;
+
+    // Text content wrapper styles - applies border/padding around text only
+    const textWrapperStyle: React.CSSProperties = {
+        display: hasBorder ? 'inline-block' : 'block',
+        paddingTop: padding.top,
+        paddingBottom: padding.bottom,
+        paddingLeft: padding.left,
+        paddingRight: padding.right,
+        backgroundColor: blockStyle.backgroundColor || data.backgroundColor || "transparent",
+        border: blockStyle.border,
+        borderRadius: blockStyle.borderRadius,
+    };
+
     return (
         <>
             {/* Add scoped CSS for paragraph spacing and empty line visibility */}
@@ -602,23 +617,19 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
             <div
                 id={blockId}
                 style={{
-                    paddingTop: padding.top,
-                    paddingBottom: padding.bottom,
-                    paddingLeft: padding.left,
-                    paddingRight: padding.right,
                     textAlign: data.alignment || "left",
                     color: textColor, // Default color - inline styles take precedence
-                    backgroundColor: blockStyle.backgroundColor || data.backgroundColor || "transparent",
                     fontFamily: data.fontFamily || EMAIL_STYLES.fonts.default,
                     fontWeight: data.fontWeight || "normal",
                     fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
                     lineHeight: EMAIL_STYLES.fonts.lineHeight,
-                    borderRadius: blockStyle.borderRadius,
                     ...backgroundStyles,
                 }}
             >
-                {/* Wrap content in a div for proper flex alignment */}
-                <div dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }} />
+                {/* Inner wrapper applies border and padding around text content only */}
+                <div style={textWrapperStyle}>
+                    <div dangerouslySetInnerHTML={{ __html: data.content || "<p>Enter text content...</p>" }} />
+                </div>
             </div>
         </>
     );

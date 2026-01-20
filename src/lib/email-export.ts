@@ -416,6 +416,36 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
           </tr>`;
   }
 
+  // Check if border is set - if so, wrap content in inline element so border wraps around text only
+  const hasBorder = style?.borderWidth && style.borderWidth > 0 && style?.borderStyle && style.borderStyle !== "none";
+
+  if (hasBorder) {
+    // Build inner wrapper styles for border/padding around text only
+    const borderColor = style?.borderColor || "#e5e7eb";
+    const borderRadius = style?.borderRadius || 0;
+
+    // Get padding from style or use defaults
+    const innerPadding = {
+      top: style?.paddingTop ?? style?.padding ?? padding.y,
+      right: style?.paddingRight ?? style?.padding ?? padding.x,
+      bottom: style?.paddingBottom ?? style?.padding ?? padding.y,
+      left: style?.paddingLeft ?? style?.padding ?? padding.x,
+    };
+
+    const innerWrapperStyle = `display: inline-block; padding: ${innerPadding.top}px ${innerPadding.right}px ${innerPadding.bottom}px ${innerPadding.left}px; border: ${style!.borderWidth}px ${style!.borderStyle} ${escapeHtml(borderColor)}; border-radius: ${borderRadius}px; background-color: ${bgcolor ? escapeHtml(bgcolor) : 'transparent'};`;
+
+    // Outer td has no padding, just alignment; inner div has border/padding
+    const outerTdStyle = `font-family: ${fontFamily}; font-size: ${fontSize}px; font-weight: ${fontWeight}; line-height: ${EMAIL_STYLES.fonts.lineHeight}; color: ${escapeHtml(color)}; text-align: ${align}`;
+
+    return `          <tr>
+            <td align="${align}" style="${outerTdStyle}">
+              <div style="${innerWrapperStyle}">
+                ${htmlContent}
+              </div>
+            </td>
+          </tr>`;
+  }
+
   return `          <tr>
             <td${bgcolorAttr} style="${tdStyle}">
               ${htmlContent}

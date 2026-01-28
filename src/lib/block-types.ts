@@ -118,6 +118,16 @@ export interface ButtonData {
     // Button-specific border (applied to the button, not the block)
     borderWidth?: number;
     borderColor?: string;
+    // Font size in pixels (default: 16)
+    fontSize?: number;
+    // Inner padding - horizontal (left/right) in pixels (default: 32)
+    paddingX?: number;
+    // Inner padding - vertical (top/bottom) in pixels (default: 14)
+    paddingY?: number;
+    // Full width mode - button spans entire container width (100%)
+    fullWidth?: boolean;
+    // Button width as percentage (10-100%) - only used when fullWidth is false
+    buttonWidth?: number;
 }
 
 export interface FooterData {

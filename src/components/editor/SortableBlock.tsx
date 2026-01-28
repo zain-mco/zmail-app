@@ -645,6 +645,19 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
         ? `${data.borderWidth}px solid ${data.borderColor || "#1e40af"}`
         : undefined;
 
+    // Button inner padding (inside the button itself)
+    const buttonPaddingY = data.paddingY ?? 14;
+    const buttonPaddingX = data.paddingX ?? 32;
+
+    // Button font size
+    const buttonFontSize = data.fontSize ?? EMAIL_STYLES.fonts.sizes.button;
+
+    // Full width mode
+    const isFullWidth = data.fullWidth || false;
+
+    // Button width (percentage) - only applies when not full width
+    const buttonWidth = data.buttonWidth ? `${data.buttonWidth}%` : undefined;
+
     return (
         <div
             style={{
@@ -659,14 +672,17 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
         >
             <span
                 style={{
-                    display: 'inline-block',
-                    padding: '14px 32px',
-                    borderRadius: data.borderRadius || 6,
+                    display: isFullWidth || buttonWidth ? 'inline-block' : 'inline-block',
+                    width: isFullWidth ? '100%' : buttonWidth,
+                    boxSizing: 'border-box',
+                    padding: `${buttonPaddingY}px ${buttonPaddingX}px`,
+                    borderRadius: `${data.borderRadius ?? 0}px`,
                     fontWeight: 'bold',
-                    fontSize: EMAIL_STYLES.fonts.sizes.button,
+                    fontSize: buttonFontSize,
                     backgroundColor: data.backgroundColor || EMAIL_STYLES.colors.buttonDefault,
                     color: data.textColor || EMAIL_STYLES.colors.buttonText,
                     border: buttonBorder,
+                    textAlign: 'center',
                 }}
             >
                 {data.text || "Button"}

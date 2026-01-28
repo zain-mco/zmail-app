@@ -457,26 +457,84 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   const padding = EMAIL_STYLES.padding.button;
   const bgColor = data.backgroundColor || EMAIL_STYLES.colors.buttonDefault;
   const textColor = data.textColor || EMAIL_STYLES.colors.buttonText;
-  const borderRadius = data.borderRadius || 6;
+  const borderRadius = data.borderRadius ?? 0;
+
+  // Button inner padding (inside the button itself)
+  const buttonPaddingY = data.paddingY ?? 14;
+  const buttonPaddingX = data.paddingX ?? 32;
+
+  // Button font size
+  const buttonFontSize = data.fontSize ?? EMAIL_STYLES.fonts.sizes.button;
+
+  // Full width mode
+  const isFullWidth = data.fullWidth || false;
+
+  // Button width (percentage) - only applies when not full width
+  const buttonWidth = data.buttonWidth || undefined;
 
   // Button-specific border (applied to the button itself, not the block)
-  const buttonBorder = data.borderWidth && data.borderWidth > 0
-    ? `border: ${data.borderWidth}px solid ${escapeHtml(data.borderColor || bgColor)};`
+  const buttonBorderWidth = data.borderWidth ?? 0;
+  const buttonBorderColor = data.borderColor || bgColor;
+  const buttonBorder = buttonBorderWidth > 0
+    ? `border: ${buttonBorderWidth}px solid ${escapeHtml(buttonBorderColor)};`
     : "";
 
   const containerStyle = mergeStyles(`padding: ${padding.y}px ${padding.x}px`, style);
   const { bgcolor } = getEmailSafeStyles(style);
   const bgcolorAttr = bgcolor ? ` bgcolor="${escapeHtml(bgcolor)}"` : "";
 
+  // Determine table width: full width (100%), custom percentage, or auto
+  let tableWidth = "";
+  let buttonPixelWidth = 0; // For VML, we need pixel width
+  if (isFullWidth) {
+    tableWidth = ` width="100%"`;
+    buttonPixelWidth = 600; // Approximate full width for VML
+  } else if (buttonWidth) {
+    tableWidth = ` width="${buttonWidth}%"`;
+    buttonPixelWidth = Math.round(600 * (buttonWidth / 100)); // Calculate pixel width for VML
+  }
+  const linkDisplay = isFullWidth || buttonWidth ? "display: block; text-align: center;" : "display: inline-block;";
+
+  // Calculate button height for VML (font size + vertical padding * 2)
+  const buttonHeight = buttonFontSize + (buttonPaddingY * 2);
+
+  // VML arcsize is a ratio from 0 to 1, representing the roundness
+  // For a border-radius of 30px on a typical button, we want proportional rounding
+  const vmlArcSize = borderRadius > 0 ? Math.min(borderRadius / (buttonHeight / 2), 1) : 0;
+
+  // For buttons without custom width, we still need VML support
+  // Use a reasonable default width that will be overridden by content
+  if (!buttonPixelWidth) {
+    buttonPixelWidth = 200; // Default for auto-width buttons
+  }
+
+  // Generate VML for Outlook (only if border-radius > 0)
+  const vmlButton = borderRadius > 0 ? `
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(data.url)}" style="height:${buttonHeight}px;v-text-anchor:middle;${isFullWidth || buttonWidth ? `width:${buttonPixelWidth}px;` : ''}" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
+                <w:anchorlock/>
+                <center style="color:${escapeHtml(textColor)};font-family:Arial,sans-serif;font-size:${buttonFontSize}px;font-weight:bold;">
+                  ${escapeHtml(data.text)}
+                </center>
+              </v:roundrect>
+              <![endif]-->` : '';
+
+  // Conditional comment to hide the regular button from Outlook when using VML
+  const msoHideStart = borderRadius > 0 ? `<!--[if !mso]><!-->` : '';
+  const msoHideEnd = borderRadius > 0 ? `<!--<![endif]-->` : '';
+
   return `          <tr>
             <td align="center"${bgcolorAttr} style="${containerStyle}">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              ${vmlButton}
+              ${msoHideStart}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0"${tableWidth}>
                 <tr>
                   <td style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; ${buttonBorder}">
-                    <a href="${escapeHtml(data.url)}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: ${EMAIL_STYLES.fonts.sizes.button}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
+                    <a href="${escapeHtml(data.url)}" target="_blank" style="${linkDisplay} padding: ${buttonPaddingY}px ${buttonPaddingX}px; font-size: ${buttonFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
                   </td>
                 </tr>
               </table>
+              ${msoHideEnd}
             </td>
           </tr>`;
 }

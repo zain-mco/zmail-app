@@ -735,6 +735,102 @@ function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                 </div>
             </div>
 
+            {/* Full Width Toggle */}
+            <div className="pt-4 border-t border-gray-100">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                        type="checkbox"
+                        checked={data.fullWidth || false}
+                        onChange={(e) => onUpdate({ ...data, fullWidth: e.target.checked, buttonWidth: e.target.checked ? undefined : data.buttonWidth })}
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div>
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Full Width Button</span>
+                        <p className="text-[10px] text-gray-400">Button will span the entire container width (100%)</p>
+                    </div>
+                </label>
+            </div>
+
+            {/* Button Width Control - only shown when not full width */}
+            {!data.fullWidth && (
+                <div className="pt-4 border-t border-gray-100">
+                    <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                        <span>Button Width</span>
+                        <span className="text-indigo-600">{data.buttonWidth ? `${data.buttonWidth}%` : 'Auto'}</span>
+                    </Label>
+                    <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={data.buttonWidth || 0}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            onUpdate({ ...data, buttonWidth: val === 0 ? undefined : val });
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">💡 Set to 0 for auto-width (button fits content)</p>
+                </div>
+            )}
+
+            {/* Font Size Control */}
+            <div className="pt-4 border-t border-gray-100">
+                <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                    <span>Font Size</span>
+                    <span className="text-indigo-600">{data.fontSize || 16}px</span>
+                </Label>
+                <input
+                    type="range"
+                    min={10}
+                    max={24}
+                    step={1}
+                    value={data.fontSize || 16}
+                    onChange={(e) => onUpdate({ ...data, fontSize: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+            </div>
+
+            {/* Button Inner Padding */}
+            <div className="pt-4 border-t border-gray-100">
+                <Label className="mb-3 block text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📐</span> Button Padding (Inner)
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Horizontal</span>
+                            <span className="text-indigo-600">{data.paddingX ?? 32}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={8}
+                            max={60}
+                            step={2}
+                            value={data.paddingX ?? 32}
+                            onChange={(e) => onUpdate({ ...data, paddingX: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
+                            <span>Vertical</span>
+                            <span className="text-indigo-600">{data.paddingY ?? 14}px</span>
+                        </Label>
+                        <input
+                            type="range"
+                            min={4}
+                            max={30}
+                            step={2}
+                            value={data.paddingY ?? 14}
+                            onChange={(e) => onUpdate({ ...data, paddingY: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">💡 Adjust the space inside the button around the text</p>
+            </div>
+
             {/* Button Border Section */}
             <div className="pt-4 border-t border-gray-100">
                 <Label className="mb-3 block text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -770,18 +866,18 @@ function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
             <div className="pt-4 border-t border-gray-100">
                 <Label className="mb-1.5 block text-xs font-semibold text-gray-400 uppercase flex justify-between">
                     <span>Corner Radius</span>
-                    <span className="text-indigo-600">{data.borderRadius || 6}px</span>
+                    <span className="text-indigo-600">{data.borderRadius ?? 0}px</span>
                 </Label>
                 <input
                     type="range"
                     min={0}
                     max={30}
                     step={2}
-                    value={data.borderRadius || 6}
+                    value={data.borderRadius ?? 0}
                     onChange={(e) => onUpdate({ ...data, borderRadius: parseInt(e.target.value) })}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                 />
-                <p className="text-[10px] text-amber-600 mt-1.5">⚠️ Displays as square corners in Outlook</p>
+                <p className="text-[10px] text-green-600 mt-1.5">✓ Works in all email clients including Outlook (VML)</p>
             </div>
 
             <BlockStylingSection

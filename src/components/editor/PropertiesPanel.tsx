@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ImageLibraryModal } from "./ImageLibraryModal";
+import { PdfLibraryModal } from "./PdfLibraryModal";
 import { BlockStylingSection } from "./BlockStylingSection";
 import { BlockIcon, blockGradients } from "./BlockIcons";
 import {
@@ -696,6 +697,37 @@ function TextBlockProperties({ block, onUpdate }: { block: EmailBlock; onUpdate:
 function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (data: any, style?: BlockStyle) => void }) {
     const data = block.data as ButtonData;
     const style = block.style || {};
+    const [showPdfLibrary, setShowPdfLibrary] = useState(false);
+    const pdfInputRef = useRef<HTMLInputElement>(null);
+
+    // Handle PDF file upload
+    const handlePdfUpload = async (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("/api/upload-pdf", {
+                method: "POST",
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.url) {
+                onUpdate({
+                    ...data,
+                    pdfUrl: result.url,
+                    pdfFilename: result.filename,
+                    url: result.url,
+                });
+            } else {
+                alert(result.error || "Failed to upload PDF");
+            }
+        } catch (error) {
+            console.error("PDF upload error:", error);
+            alert("Failed to upload PDF. Please try again.");
+        }
+    };
 
     return (
         <div className="space-y-5">
@@ -716,7 +748,88 @@ function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                     onChange={(e) => onUpdate({ ...data, url: e.target.value })}
                     placeholder="https://"
                     className="text-blue-600"
+                    disabled={!!data.pdfUrl}
                 />
+                {data.pdfUrl && (
+                    <p className="text-[10px] text-amber-600 mt-1">⚠️ URL is set to PDF download</p>
+                )}
+            </div>
+
+            {/* PDF Download Section */}
+            <div className="pt-4 border-t border-gray-100">
+                <Label className="mb-2 block text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+                    <span>📄</span> PDF Download
+                </Label>
+
+                {data.pdfUrl ? (
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm text-green-700 font-medium flex-1 truncate">
+                                {data.pdfFilename || "PDF attached"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => onUpdate({ ...data, pdfUrl: undefined, pdfFilename: undefined, url: "" })}
+                                className="text-red-500 hover:text-red-700 p-1"
+                                title="Remove PDF"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-400">
+                            ✓ Button will trigger PDF download when clicked
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {/* Hidden file input for PDF upload */}
+                        <input
+                            ref={pdfInputRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    handlePdfUpload(file);
+                                }
+                                e.target.value = "";
+                            }}
+                        />
+
+                        {/* Upload New / From Library buttons */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => pdfInputRef.current?.click()}
+                                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer"
+                            >
+                                <svg className="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">Upload New</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowPdfLibrary(true)}
+                                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
+                            >
+                                <svg className="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">From Library</span>
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-400">
+                            💡 Upload a PDF file that will download when the button is clicked
+                        </p>
+                    </div>
+                )}
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -885,6 +998,24 @@ function ButtonProperties({ block, onUpdate }: { block: EmailBlock; onUpdate: (d
                 onChange={(newStyle) => onUpdate(data, newStyle)}
                 showBackground={false}
                 showBorder={false}
+            />
+
+            {/* PDF Library Modal */}
+            <PdfLibraryModal
+                isOpen={showPdfLibrary}
+                onClose={() => setShowPdfLibrary(false)}
+                onSelect={(url, filename) => {
+                    onUpdate({
+                        ...data,
+                        pdfUrl: url,
+                        pdfFilename: filename,
+                        url: url,
+                    });
+                }}
+                onUploadNew={() => {
+                    setShowPdfLibrary(false);
+                    pdfInputRef.current?.click();
+                }}
             />
         </div>
     );

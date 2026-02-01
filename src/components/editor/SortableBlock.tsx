@@ -623,6 +623,9 @@ function TextBlockRenderer({ data, style }: { data: TextBlockData; style?: Block
                     fontWeight: data.fontWeight || "normal",
                     fontSize: data.fontSize || EMAIL_STYLES.fonts.sizes.default,
                     lineHeight: EMAIL_STYLES.fonts.lineHeight,
+                    // Font smoothing for consistent rendering with export
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
                     ...backgroundStyles,
                 }}
             >
@@ -658,6 +661,9 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
     // Button width (percentage) - only applies when not full width
     const buttonWidth = data.buttonWidth ? `${data.buttonWidth}%` : undefined;
 
+    // Check if PDF is attached
+    const hasPdf = !!data.pdfUrl;
+
     return (
         <div
             style={{
@@ -685,6 +691,7 @@ function ButtonRenderer({ data, style }: { data: ButtonData; style?: BlockStyle 
                     textAlign: 'center',
                 }}
             >
+                {hasPdf && <span style={{ marginRight: '6px' }}>📄</span>}
                 {data.text || "Button"}
             </span>
         </div>

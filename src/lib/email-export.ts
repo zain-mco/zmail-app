@@ -472,6 +472,9 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   // Button width (percentage) - only applies when not full width
   const buttonWidth = data.buttonWidth || undefined;
 
+  // Use PDF URL if set, otherwise regular URL
+  const buttonUrl = data.pdfUrl || data.url || "#";
+
   // Button-specific border (applied to the button itself, not the block)
   const buttonBorderWidth = data.borderWidth ?? 0;
   const buttonBorderColor = data.borderColor || bgColor;
@@ -511,7 +514,7 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   // Generate VML for Outlook (only if border-radius > 0)
   const vmlButton = borderRadius > 0 ? `
               <!--[if mso]>
-              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(data.url)}" style="height:${buttonHeight}px;v-text-anchor:middle;${isFullWidth || buttonWidth ? `width:${buttonPixelWidth}px;` : ''}" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(buttonUrl)}" style="height:${buttonHeight}px;v-text-anchor:middle;${isFullWidth || buttonWidth ? `width:${buttonPixelWidth}px;` : ''}" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
                 <w:anchorlock/>
                 <center style="color:${escapeHtml(textColor)};font-family:Arial,sans-serif;font-size:${buttonFontSize}px;font-weight:bold;">
                   ${escapeHtml(data.text)}
@@ -530,7 +533,7 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0"${tableWidth}>
                 <tr>
                   <td style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; ${buttonBorder}">
-                    <a href="${escapeHtml(data.url)}" target="_blank" style="${linkDisplay} padding: ${buttonPaddingY}px ${buttonPaddingX}px; font-size: ${buttonFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
+                    <a href="${escapeHtml(buttonUrl)}" target="_blank" style="${linkDisplay} padding: ${buttonPaddingY}px ${buttonPaddingX}px; font-size: ${buttonFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
                   </td>
                 </tr>
               </table>

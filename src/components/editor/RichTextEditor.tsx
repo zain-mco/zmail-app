@@ -65,7 +65,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start typing.
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-4',
-        style: 'font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.6;',
+        style: 'font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;',
       },
     },
     onUpdate: ({ editor }) => {

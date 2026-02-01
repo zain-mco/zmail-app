@@ -27,6 +27,7 @@ model User {
   campaigns     Campaign[]
   sharedAccess  SharedAccess[] @relation("SharedWith")
   images        Image[]
+  pdfs          Pdf[]
   createdAt     DateTime       @default(now())
 }
 
@@ -61,6 +62,19 @@ model Image {
   id          String   @id @default(cuid())
   url         String
   filename    String
+  uploadedBy  String
+  user        User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([uploadedBy])
+  @@index([createdAt])
+}
+
+model Pdf {
+  id          String   @id @default(cuid())
+  url         String
+  filename    String
+  size        Int?     // File size in bytes
   uploadedBy  String
   user        User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

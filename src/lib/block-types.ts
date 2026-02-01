@@ -128,6 +128,9 @@ export interface ButtonData {
     fullWidth?: boolean;
     // Button width as percentage (10-100%) - only used when fullWidth is false
     buttonWidth?: number;
+    // PDF download functionality
+    pdfUrl?: string;
+    pdfFilename?: string;
 }
 
 export interface FooterData {

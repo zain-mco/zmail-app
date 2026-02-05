@@ -505,16 +505,19 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   // For a border-radius of 30px on a typical button, we want proportional rounding
   const vmlArcSize = borderRadius > 0 ? Math.min(borderRadius / (buttonHeight / 2), 1) : 0;
 
-  // For buttons without custom width, we still need VML support
-  // Use a reasonable default width that will be overridden by content
+  // For buttons without custom width, calculate based on text length
+  // Approximate: each character is about 8-10px at 16px font size
   if (!buttonPixelWidth) {
-    buttonPixelWidth = 200; // Default for auto-width buttons
+    const charWidth = buttonFontSize * 0.6; // Approximate character width
+    const textWidth = (data.text?.length || 6) * charWidth;
+    const totalWidth = textWidth + (buttonPaddingX * 2) + (buttonBorderWidth * 2);
+    buttonPixelWidth = Math.max(150, Math.round(totalWidth)); // Minimum 150px
   }
 
   // Generate VML for Outlook (only if border-radius > 0)
   const vmlButton = borderRadius > 0 ? `
               <!--[if mso]>
-              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(buttonUrl)}" style="height:${buttonHeight}px;v-text-anchor:middle;${isFullWidth || buttonWidth ? `width:${buttonPixelWidth}px;` : ''}" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(buttonUrl)}" style="height:${buttonHeight}px;v-text-anchor:middle;width:${buttonPixelWidth}px;" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
                 <w:anchorlock/>
                 <center style="color:${escapeHtml(textColor)};font-family:Arial,sans-serif;font-size:${buttonFontSize}px;font-weight:bold;">
                   ${escapeHtml(data.text)}

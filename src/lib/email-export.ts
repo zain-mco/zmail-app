@@ -238,7 +238,7 @@ export function blocksToHtml(content: EmailContent): string {
   // NOTE: Google Fonts removed - they cause external requests which can trigger spam filters
   // Using web-safe font stack instead for maximum compatibility
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -250,10 +250,17 @@ export function blocksToHtml(content: EmailContent): string {
   <noscript>
     <xml>
       <o:OfficeDocumentSettings>
+        <o:AllowPNG/>
         <o:PixelsPerInch>96</o:PixelsPerInch>
       </o:OfficeDocumentSettings>
     </xml>
   </noscript>
+  <style type="text/css">
+    body, table, td, p, a, li { font-family: Arial, Helvetica, sans-serif !important; }
+    table { border-collapse: collapse; }
+    v\:* { behavior: url(#default#VML); }
+    o\:* { behavior: url(#default#VML); }
+  </style>
   <![endif]-->
   <style>
     /* Reset styles for email clients */
@@ -263,14 +270,24 @@ export function blocksToHtml(content: EmailContent): string {
     body { margin: 0; padding: 0; width: 100% !important; }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">${preheaderHtml}
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; mso-line-height-rule: exactly;">${preheaderHtml}
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4;">
     <tr>
-      <td align="center" style="padding: 20px 0;">
+      <td align="center" style="padding: 20px 0; font-family: Arial, Helvetica, sans-serif;">
+        <!--[if mso]>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" align="center" style="width:600px;">
+        <tr>
+        <td>
+        <![endif]-->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" bgcolor="${bgcolorAttr}" style="${bgStyle} max-width: 600px;">
 ${bodyContent}
 ${complianceFooter}
         </table>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
       </td>
     </tr>
   </table>
@@ -372,9 +389,10 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
 
   // Add inline styles to paragraphs for spacing between them (Enter key line breaks)
   // First paragraph gets no margin, subsequent paragraphs get margin-top for spacing
+  // Include font-family and font-size inline for Outlook compatibility (ignores <style> blocks)
   let isFirstParagraph = true;
   htmlContent = htmlContent.replace(/<p([^>]*)>/g, (match, attrs) => {
-    const marginStyle = isFirstParagraph ? 'margin: 0; padding: 0; min-height: 1em;' : 'margin: 12px 0 0 0; padding: 0; min-height: 1em;';
+    const marginStyle = isFirstParagraph ? `margin: 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight};` : `margin: 12px 0 0 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight};`;
     isFirstParagraph = false;
     // Check if there's already a style attribute
     if (attrs.includes('style=')) {
@@ -506,28 +524,30 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
   const vmlArcSize = borderRadius > 0 ? Math.min(borderRadius / (buttonHeight / 2), 1) : 0;
 
   // For buttons without custom width, calculate based on text length
-  // Approximate: each character is about 8-10px at 16px font size
+  // Bold Arial characters are approximately 0.75x the font size in width
+  // Add generous buffer (20px) to prevent text truncation in Outlook
   if (!buttonPixelWidth) {
-    const charWidth = buttonFontSize * 0.6; // Approximate character width
+    const charWidth = buttonFontSize * 0.75; // Bold character width approximation
     const textWidth = (data.text?.length || 6) * charWidth;
-    const totalWidth = textWidth + (buttonPaddingX * 2) + (buttonBorderWidth * 2);
-    buttonPixelWidth = Math.max(150, Math.round(totalWidth)); // Minimum 150px
+    const totalWidth = textWidth + (buttonPaddingX * 2) + (buttonBorderWidth * 2) + 20; // extra buffer
+    buttonPixelWidth = Math.max(180, Math.round(totalWidth)); // Minimum 180px
   }
 
-  // Generate VML for Outlook (only if border-radius > 0)
-  const vmlButton = borderRadius > 0 ? `
+  // Generate VML for Outlook - always provide VML fallback for reliable rendering
+  // VML ensures proper width, padding, and background color in all Outlook versions
+  const vmlButton = `
               <!--[if mso]>
               <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(buttonUrl)}" style="height:${buttonHeight}px;v-text-anchor:middle;width:${buttonPixelWidth}px;" arcsize="${Math.round(vmlArcSize * 100)}%" ${buttonBorderWidth > 0 ? `strokecolor="${escapeHtml(buttonBorderColor)}" strokeweight="${buttonBorderWidth}px"` : 'stroke="f"'} fillcolor="${escapeHtml(bgColor)}">
                 <w:anchorlock/>
-                <center style="color:${escapeHtml(textColor)};font-family:Arial,sans-serif;font-size:${buttonFontSize}px;font-weight:bold;">
+                <center style="color:${escapeHtml(textColor)};font-family:Arial,Helvetica,sans-serif;font-size:${buttonFontSize}px;font-weight:bold;">
                   ${escapeHtml(data.text)}
                 </center>
               </v:roundrect>
-              <![endif]-->` : '';
+              <![endif]-->`;
 
-  // Conditional comment to hide the regular button from Outlook when using VML
-  const msoHideStart = borderRadius > 0 ? `<!--[if !mso]><!-->` : '';
-  const msoHideEnd = borderRadius > 0 ? `<!--<![endif]-->` : '';
+  // Hide the regular HTML button from Outlook since VML handles it
+  const msoHideStart = `<!--[if !mso]><!-->`;
+  const msoHideEnd = `<!--<![endif]-->`;
 
   return `          <tr>
             <td align="center"${bgcolorAttr} style="${containerStyle}">
@@ -535,8 +555,8 @@ function renderButton(data: ButtonData, style?: BlockStyle): string {
               ${msoHideStart}
               <table role="presentation" cellpadding="0" cellspacing="0" border="0"${tableWidth}>
                 <tr>
-                  <td style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; ${buttonBorder}">
-                    <a href="${escapeHtml(buttonUrl)}" target="_blank" style="${linkDisplay} padding: ${buttonPaddingY}px ${buttonPaddingX}px; font-size: ${buttonFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
+                  <td align="center" style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; ${buttonBorder} mso-padding-alt: ${buttonPaddingY}px ${buttonPaddingX}px;">
+                    <a href="${escapeHtml(buttonUrl)}" target="_blank" style="${linkDisplay} padding: ${buttonPaddingY}px ${buttonPaddingX}px; font-family: Arial, Helvetica, sans-serif; font-size: ${buttonFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px; mso-line-height-rule: exactly; line-height: ${buttonFontSize}px;">${escapeHtml(data.text)}</a>
                   </td>
                 </tr>
               </table>
@@ -1171,6 +1191,16 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
 
       // Preserve HTML content and add list styles
       let htmlContent = data.content || "";
+
+      // Add inline font styles to paragraphs for Outlook compatibility
+      htmlContent = htmlContent.replace(/<p([^>]*)>/g, (match: string, attrs: string) => {
+        const pStyle = `margin: 0; padding: 0; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: 1.6;`;
+        if (attrs.includes('style=')) {
+          return match.replace(/style="([^"]*)"/, `style="$1 ${pStyle}"`);
+        }
+        return `<p${attrs} style="${pStyle}">`;
+      });
+
       htmlContent = htmlContent
         .replace(/<ul>/g, '<ul style="margin: 8px 0; padding-left: 24px; list-style-type: disc;">')
         .replace(/<ol>/g, '<ol style="margin: 8px 0; padding-left: 24px; list-style-type: decimal;">')
@@ -1189,15 +1219,38 @@ function renderNestedBlock(block: EmailBlock, containerWidth: number = 270): str
       const data = block.data as ButtonData;
       const bgColor = data.backgroundColor || "#1e40af";
       const textColor = data.textColor || "#ffffff";
+      const borderRadius = data.borderRadius ?? 0;
+      const btnFontSize = data.fontSize ?? 14;
+      const btnPaddingY = data.paddingY ?? 12;
+      const btnPaddingX = data.paddingX ?? 24;
+      const buttonUrl = data.pdfUrl || data.url || "#";
+
+      // Calculate VML dimensions
+      const btnHeight = btnFontSize + (btnPaddingY * 2);
+      const charWidth = btnFontSize * 0.75;
+      const textWidth = (data.text?.length || 6) * charWidth;
+      const btnPixelWidth = Math.max(180, Math.round(textWidth + (btnPaddingX * 2) + 20));
+      const vmlArcSize = borderRadius > 0 ? Math.min(borderRadius / (btnHeight / 2), 1) : 0;
+
       return `                    <tr>
                       <td align="center" style="padding: 10px 0;">
+                        <!--[if mso]>
+                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(buttonUrl)}" style="height:${btnHeight}px;v-text-anchor:middle;width:${btnPixelWidth}px;" arcsize="${Math.round(vmlArcSize * 100)}%" stroke="f" fillcolor="${escapeHtml(bgColor)}">
+                          <w:anchorlock/>
+                          <center style="color:${escapeHtml(textColor)};font-family:Arial,Helvetica,sans-serif;font-size:${btnFontSize}px;font-weight:bold;">
+                            ${escapeHtml(data.text)}
+                          </center>
+                        </v:roundrect>
+                        <![endif]-->
+                        <!--[if !mso]><!-->
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                           <tr>
-                            <td style="background-color: ${escapeHtml(bgColor)}; border-radius: 6px;">
-                              <a href="${escapeHtml(data.url)}" target="_blank" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: 6px;">${escapeHtml(data.text)}</a>
+                            <td align="center" style="background-color: ${escapeHtml(bgColor)}; border-radius: ${borderRadius}px; mso-padding-alt: ${btnPaddingY}px ${btnPaddingX}px;">
+                              <a href="${escapeHtml(buttonUrl)}" target="_blank" style="display: inline-block; padding: ${btnPaddingY}px ${btnPaddingX}px; font-family: Arial, Helvetica, sans-serif; font-size: ${btnFontSize}px; font-weight: bold; color: ${escapeHtml(textColor)}; text-decoration: none; border-radius: ${borderRadius}px;">${escapeHtml(data.text)}</a>
                             </td>
                           </tr>
                         </table>
+                        <!--<![endif]-->
                       </td>
                     </tr>`;
     }

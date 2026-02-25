@@ -229,7 +229,7 @@ export function blocksToHtml(content: EmailContent): string {
     complianceFooter = `
           <tr>
             <td align="center" style="padding: 20px 20px 30px 20px; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0; color: #6b7280; font-size: 12px; line-height: 1.5;">${formattedAddress}</p>
+              <p style="margin: 0; color: #6b7280; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.5; mso-line-height-rule: exactly;">${formattedAddress}</p>
             </td>
           </tr>`;
   }
@@ -392,7 +392,7 @@ function renderTextBlock(data: TextBlockData, style?: BlockStyle): string {
   // Include font-family and font-size inline for Outlook compatibility (ignores <style> blocks)
   let isFirstParagraph = true;
   htmlContent = htmlContent.replace(/<p([^>]*)>/g, (match, attrs) => {
-    const marginStyle = isFirstParagraph ? `margin: 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight};` : `margin: 12px 0 0 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight};`;
+    const marginStyle = isFirstParagraph ? `margin: 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight}; mso-line-height-rule: exactly;` : `margin: 12px 0 0 0; padding: 0; min-height: 1em; font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: ${EMAIL_STYLES.fonts.lineHeight}; mso-line-height-rule: exactly;`;
     isFirstParagraph = false;
     // Check if there's already a style attribute
     if (attrs.includes('style=')) {
@@ -630,36 +630,37 @@ function renderFooter(data: FooterData, style?: BlockStyle): string {
     }
   }
 
-  // Structured content
+  // Helper to lighten a color for secondary text (instead of opacity which Outlook ignores)
+  const secondaryTextColor = textColor;
+
+  // Structured content - use table rows with explicit font-family for Outlook
   const hasStructuredContent = data.companyName || data.address || data.contactInfo;
   if (hasStructuredContent) {
-    let structuredHtml = "";
     if (data.companyName) {
-      structuredHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(data.companyName)}</div>`;
+      sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${fontSize}px; font-weight: 600; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; padding-bottom: 4px; mso-line-height-rule: exactly;">${escapeHtml(data.companyName)}</td></tr>`);
     }
     if (data.address) {
-      structuredHtml += `<div style="opacity: 0.8; margin-bottom: 4px;">${escapeHtml(data.address)}</div>`;
+      sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(secondaryTextColor)}; text-align: center; padding-bottom: 4px; mso-line-height-rule: exactly;">${escapeHtml(data.address)}</td></tr>`);
     }
     if (data.contactInfo) {
-      structuredHtml += `<div style="opacity: 0.8;">${escapeHtml(data.contactInfo)}</div>`;
+      sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(secondaryTextColor)}; text-align: center; padding-bottom: 8px; mso-line-height-rule: exactly;">${escapeHtml(data.contactInfo)}</td></tr>`);
     }
-    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; padding-bottom: 8px;">${structuredHtml}</td></tr>`);
   }
 
   // Custom content / legacy text
   if (data.content) {
-    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">${escapeHtml(data.content).replace(/\n/g, "<br>")}</td></tr>`);
+    sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; mso-line-height-rule: exactly;">${escapeHtml(data.content).replace(/\n/g, "<br>")}</td></tr>`);
   }
 
   // Copyright
   if (data.copyrightYear) {
     const copyrightFontSize = Math.max(fontSize - 1, 10);
-    sections.push(`<tr><td style="font-size: ${copyrightFontSize}px; opacity: 0.7; color: ${escapeHtml(textColor)}; text-align: center; padding-top: 8px;">© ${escapeHtml(data.copyrightYear)} ${escapeHtml(data.companyName || "Your Company")}. All rights reserved.</td></tr>`);
+    sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${copyrightFontSize}px; color: ${escapeHtml(secondaryTextColor)}; text-align: center; padding-top: 8px; mso-line-height-rule: exactly;">© ${escapeHtml(data.copyrightYear)} ${escapeHtml(data.companyName || "Your Company")}. All rights reserved.</td></tr>`);
   }
 
   // If no content at all, show placeholder
   if (sections.length === 0) {
-    sections.push(`<tr><td style="font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center;">Footer text</td></tr>`);
+    sections.push(`<tr><td style="font-family: ${fontFamily}; font-size: ${fontSize}px; line-height: 1.6; color: ${escapeHtml(textColor)}; text-align: center; mso-line-height-rule: exactly;">Footer text</td></tr>`);
   }
 
   // Vertical alignment for email (using valign attribute for table compatibility)

@@ -555,6 +555,10 @@ export function EditorWorkspace({
             const content: EmailContent = {
                 blocks,
                 settings: {
+                    width: 600 as const,
+                    backgroundColor: "#ffffff",
+                    fontFamily: "Arial, Helvetica, sans-serif",
+                    responsive: true,
                     ...initialContent.settings,
                     contentBackgroundColor: contentBgColor,
                     emailTitle,

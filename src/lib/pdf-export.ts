@@ -213,7 +213,7 @@ export async function exportEmailAsPdf(
 
     onProgress?.("Generating PDF...");
 
-    // Calculate PDF dimensions
+    // Calculate PDF dimensions — single continuous page (no page breaks)
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
     const pxToMm = 0.264583;
@@ -223,82 +223,27 @@ export async function exportEmailAsPdf(
     const marginX = 10;
     const marginY = 10;
     const pageWidthMm = contentWidthMm + marginX * 2;
-    const totalHeightMm = contentHeightMm + marginY * 2;
-    const a4Height = 297;
+    const pageHeightMm = contentHeightMm + marginY * 2;
 
     // Scale factor: content pixels (at 1x) to mm
     const pxScaleToMm = contentWidthMm / 660; // 660px content width
 
-    if (totalHeightMm <= a4Height) {
-      // Single page
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [pageWidthMm, Math.max(totalHeightMm, 50)],
-      });
+    // Single page with exact content height — no splitting
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [pageWidthMm, Math.max(pageHeightMm, 50)],
+    });
 
-      pdf.addImage(
-        canvas.toDataURL("image/png"), "PNG",
-        marginX, marginY, contentWidthMm, contentHeightMm
-      );
+    pdf.addImage(
+      canvas.toDataURL("image/png"), "PNG",
+      marginX, marginY, contentWidthMm, contentHeightMm
+    );
 
-      // Add clickable links
-      addLinksToPage(pdf, links, marginX, marginY, pxScaleToMm, 0, contentHeight);
+    // Add all clickable links
+    addLinksToPage(pdf, links, marginX, marginY, pxScaleToMm, 0, contentHeight);
 
-      pdf.save(`${filename}.pdf`);
-    } else {
-      // Multi-page
-      const pageContentHeightMm = a4Height - marginY * 2;
-      const pageContentHeightPx = pageContentHeightMm / pxScaleToMm;
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [pageWidthMm, a4Height],
-      });
-
-      const scaleFactor = contentWidthMm / imgWidth;
-      let remainingHeightMm = contentHeightMm;
-      let sourceYPx = 0;
-      let pageNum = 0;
-
-      while (remainingHeightMm > 0.5) { // Use 0.5mm threshold to avoid blank trailing pages
-        if (pageNum > 0) {
-          pdf.addPage();
-        }
-
-        const sliceHeightMm = Math.min(pageContentHeightMm, remainingHeightMm);
-        const sliceHeightPx = sliceHeightMm / scaleFactor;
-
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.ceil(sliceHeightPx);
-        const ctx = pageCanvas.getContext("2d");
-
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, sourceYPx, canvas.width, Math.ceil(sliceHeightPx),
-            0, 0, canvas.width, Math.ceil(sliceHeightPx)
-          );
-
-          pdf.addImage(
-            pageCanvas.toDataURL("image/png"), "PNG",
-            marginX, marginY, contentWidthMm, sliceHeightMm
-          );
-        }
-
-        // Add clickable links that fall within this page's Y range
-        const pageTopPx = sourceYPx / 2; // Divide by scale (2x)
-        const pageBottomPx = pageTopPx + (sliceHeightPx / 2);
-        addLinksToPage(pdf, links, marginX, marginY, pxScaleToMm, pageTopPx, pageBottomPx);
-
-        sourceYPx += sliceHeightPx;
-        remainingHeightMm -= sliceHeightMm;
-        pageNum++;
-      }
-
-      pdf.save(`${filename}.pdf`);
-    }
+    pdf.save(`${filename}.pdf`);
 
     onProgress?.("Done!");
   } finally {
